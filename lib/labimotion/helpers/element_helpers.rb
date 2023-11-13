@@ -92,7 +92,7 @@ module Labimotion
       all_coll = Collection.get_all_collection_for_user(current_user.id)
       element.collections << all_coll
       element.save!
-      element.properties = update_sample_association(element, params[:properties], current_user)
+      element.properties = update_sample_association(params[:properties], current_user, element)
       element.container = update_datamodel(params[:container], current_user)
       element.save!
       element.save_segments(segments: params[:segments], current_user_id: current_user.id)
@@ -105,7 +105,7 @@ module Labimotion
     def update_element_by_id(current_user, params)
       element = Labimotion::Element.find(params[:id])
       update_datamodel(params[:container], current_user)
-      properties = update_sample_association(element, params[:properties], current_user)
+      properties = update_sample_association(params[:properties], current_user, element)
       params.delete(:container)
       params.delete(:properties)
       attributes = declared(params.except(:segments), include_missing: false)

@@ -310,7 +310,10 @@ module Labimotion
       end
       route_param :id do
         before do
-          error!('401 Unauthorized', 401) unless current_user.matrix_check_by_name('genericElement') && ElementPolicy.new(current_user, Element.find(params[:id])).read?
+          @element_policy = ElementPolicy.new(current_user, Element.find(params[:id]))
+          error!('401 Unauthorized', 401) unless current_user.matrix_check_by_name('genericElement') && @element_policy.read?
+        rescue ActiveRecord::RecordNotFound
+          error!('404 Not Found', 404)
         end
 
         get do
@@ -321,10 +324,12 @@ module Labimotion
               attachments: attach_thumbnail(element&.attachments)
             }
           else
+            #byebug
             {
               element: Labimotion::ElementEntity.represent(
                 element,
                 detail_levels: ElementDetailLevelCalculator.new(user: current_user, element: element).detail_levels,
+                policy: @element_policy
               ),
               attachments: attach_thumbnail(element&.attachments)
             }

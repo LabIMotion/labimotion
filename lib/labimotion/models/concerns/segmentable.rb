@@ -41,6 +41,7 @@ module Labimotion
 
     def save_segments(**args) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
       return if args[:segments].nil?
+
       segments = []
       args[:segments]&.each do |seg|
         klass = Labimotion::SegmentKlass.find_by(id: seg['segment_klass_id'])
@@ -50,6 +51,7 @@ module Labimotion
         props['identifier'] = klass.identifier if klass.identifier.present?
         props['uuid'] = uuid
         props['klass'] = 'Segment'
+        props = Labimotion::SampleAssociation.update_sample_association(props, args[:current_user_id])
         segment = Labimotion::Segment.find_by(element_type: Labimotion::Utils.element_name(self.class.name), element_id: self.id, segment_klass_id: seg['segment_klass_id'])
         if segment.present? && (segment.klass_uuid != props['klass_uuid'] || segment.properties != props)
           segment.update!(properties_release: klass.properties_release, properties: props, uuid: uuid, klass_uuid: props['klass_uuid'])

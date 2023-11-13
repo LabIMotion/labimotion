@@ -22,6 +22,8 @@ module Labimotion
   autoload :ConverterAPI, 'labimotion/apis/converter_api'
 
   ######## Entities
+  autoload :PropertiesEntity, 'labimotion/entities/properties_entity'
+
   autoload :ElementEntity, 'labimotion/entities/element_entity'
   autoload :ElnElementEntity, 'labimotion/entities/eln_element_entity'
 
@@ -56,6 +58,7 @@ module Labimotion
   autoload :NmrMapperRepo, 'labimotion/libs/nmr_mapper_repo' ## for Chemotion Repository
   autoload :TemplateHub, 'labimotion/libs/template_hub'
   autoload :ExportDataset, 'labimotion/libs/export_dataset'
+  autoload :SampleAssociation, 'labimotion/libs/sample_association'
 
   ######## Utils
   autoload :ConState, 'labimotion/utils/con_state'
