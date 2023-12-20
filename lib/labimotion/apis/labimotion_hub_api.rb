@@ -19,7 +19,7 @@ module Labimotion
         get do
           list = "Labimotion::#{params[:klass]}".constantize.where(is_active: true).where.not(released_at: nil)
           list = list.where(is_generic: true) if params[:klass] == 'ElementKlass'
-          entities = Labimotion::GenericPublicEntity.represent(list, displayed: params[:with_props])
+          entities = Labimotion::GenericPublicEntity.represent(list, displayed: params[:with_props], root: 'list')
         rescue StandardError => e
           Labimotion.log_exception(e, current_user)
           []

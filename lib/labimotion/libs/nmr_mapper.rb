@@ -10,8 +10,12 @@ module Labimotion
       att = Attachment.find_by(id: id, con_state: Labimotion::ConState::NMR)
       return if att.nil?
 
-      content = is_brucker_binary(id)
-      if content.nil?
+      result = is_brucker_binary(id)
+      if result[:is_bagit] == true
+        att.update_column(:con_state, Labimotion::ConState::CONVERTED)
+        Labimotion::Converter.metadata(id)
+        Labimotion::ConState::COMPLETED
+      elsif result[:metadata] == nil
         Labimotion::ConState::NONE
       else
         data = process(att, id, content)
@@ -29,7 +33,9 @@ module Labimotion
           zip_file.each do |entry|
             if entry.name.include?('/pdata/') && entry.name.include?('parm.txt')
               metadata = entry.get_input_stream.read.force_encoding('UTF-8')
-              return metadata
+              return { is_bagit: false, metadata: metadata }
+            elsif entry.name.include?('metadata/') && entry.name.include?('converter.json')
+              return { is_bagit: true, metadata: nil }
             end
           end
         end
@@ -39,13 +45,15 @@ module Labimotion
             zip_file.each do |entry|
               if entry.name.include?('/pdata/') && entry.name.include?('parm.txt')
                 metadata = entry.get_input_stream.read.force_encoding('UTF-8')
-                return metadata
+                return { is_bagit: false, metadata: metadata }
+              elsif entry.name.include?('metadata/') && entry.name.include?('converter.json')
+                return { is_bagit: true, metadata: nil }
               end
             end
           end
         end
       end
-      nil
+      { is_bagit: false, metadata: nil }
     end
 
     def self.process(att, id, content)

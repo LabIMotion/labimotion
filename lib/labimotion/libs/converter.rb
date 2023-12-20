@@ -20,7 +20,10 @@ module Labimotion
 
     def self.process_ds(id, current_user = {})
       att = Attachment.find_by(id: id, con_state: Labimotion::ConState::CONVERTED)
-      return if att.nil? || att.attachable_id.nil? || att.attachable_type != 'Container'
+      return if att.nil? || att.attachable_id.nil? || att.attachable_type != 'Container' || att.filename.split('.')&.last != 'zip'
+
+      eln_ds = Container.find_by(id: att.attachable_id, container_type: 'dataset')
+      return if eln_ds.nil? || eln_ds.parent.nil? || eln_ds.parent&.container_type != 'analysis'
 
       dsr = []
       ols = nil

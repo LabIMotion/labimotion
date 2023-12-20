@@ -8,7 +8,7 @@ module Labimotion
   end
 
   def self.log_exception(exception, current_user = nil)
-    Labimotion.logger.error("version: #{Labimotion::VERSION}; #{Labimotion::IS_RAILS5}, (#{current_user&.id}) \n Exception: #{exception.message}")
+    Labimotion.logger.error("version: #{Labimotion::VERSION}; (#{current_user&.id}) \n Exception: #{exception.message}")
     Labimotion.logger.error(exception.backtrace.join("\n"))
   end
 
