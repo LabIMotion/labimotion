@@ -7,7 +7,7 @@ module Labimotion
   module Segmentable
     extend ActiveSupport::Concern
     included do
-      has_many :segments, as: :element, dependent: :destroy, class_name: 'Labimotion::Segment'
+      has_many :segments, -> { select('DISTINCT ON (element_type, segment_klass_id) *').order(element_type: :asc, segment_klass_id: :asc, id: :desc) }, as: :element, dependent: :destroy, class_name: 'Labimotion::Segment'
     end
 
     def copy_segments(**args)
@@ -52,10 +52,11 @@ module Labimotion
         props['uuid'] = uuid
         props['klass'] = 'Segment'
         props = Labimotion::SampleAssociation.update_sample_association(props, args[:current_user_id])
-        segment = Labimotion::Segment.find_by(element_type: Labimotion::Utils.element_name(self.class.name), element_id: self.id, segment_klass_id: seg['segment_klass_id'])
+        segment = Labimotion::Segment.where(element_type: self.class.name, element_id: self.id, segment_klass_id: seg['segment_klass_id']).order(id: :desc).first
         if segment.present? && (segment.klass_uuid != props['klass_uuid'] || segment.properties != props)
           segment.update!(properties_release: klass.properties_release, properties: props, uuid: uuid, klass_uuid: props['klass_uuid'])
           segments.push(segment)
+          Labimotion::Segment.where(element_type: self.class.name, element_id: self.id, segment_klass_id: seg['segment_klass_id']).where.not(id: segment.id).destroy_all
         end
         next if segment.present?
 
