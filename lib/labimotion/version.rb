@@ -3,5 +3,5 @@
 ## Labimotion Version
 module Labimotion
   IS_RAILS5 = false
-  VERSION = '1.1.2'
+  VERSION = '1.1.3'
 end

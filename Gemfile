@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/labimotion/#{repo}.git" }
 
-ruby '2.7.7'  ## '2.6.8'
+ruby '2.7.8'
 
 gem 'bootsnap', '>= 1.13.0', require: false
 
