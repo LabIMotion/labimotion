@@ -1,3 +1,8 @@
+1.1.4 - 2024-02-15
+===================
+* Bug fixes
+  * fix generic dataset general info for CV
+
 1.1.3 - 2024-01-31
 ===================
 * Upgrade ruby to 2.7.8
