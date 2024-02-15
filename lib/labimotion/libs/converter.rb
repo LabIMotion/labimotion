@@ -262,7 +262,6 @@ module Labimotion
       end
       new_prop.dig('layers', 'general', 'fields')&.each_with_index do |fi, idx|
         if fi['field'] == 'creator' && current_user.present?
-          fi['label'] = fi['label']
           fi['value'] = current_user.name
           fi['system'] = current_user.name
           new_prop['layers']['general']['fields'][idx] = fi
@@ -273,13 +272,13 @@ module Labimotion
         if fi['field'] == 'id'
           fi['value'] = element.id
           fi['system'] = element.id
-          new_prop['layers']['general']['fields'][idx] = fi
+          new_prop['layers']['sample_details']['fields'][idx] = fi
         end
 
         if fi['field'] == 'label'
           fi['value'] = element.short_label
           fi['system'] = element.short_label
-          new_prop['layers']['general']['fields'][idx] = fi
+          new_prop['layers']['sample_details']['fields'][idx] = fi
         end
       end
       dataset.properties = new_prop
