@@ -50,7 +50,7 @@ Code released under the [AGPL-3.0 License]([https://www.gnu.org/licenses/agpl-3.
 
 This project has been funded by the **[DFG]**.
 
-[![DFG Logo]][DFG]
+<a href="https://www.dfg.de/" target="_blank"><img src="https://github.com/ComPlat/chemotion_REPO/blob/master/public/images/repo/dfg_logo_schriftzug_blau_foerderung_en.jpg" width="50%" alt="DFG Logo"></a>
 
 
 Funded by the [Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)](https://www.dfg.de/) under the [National Research Data Infrastructure – NFDI4Chem](https://nfdi4chem.de/) – Projektnummer **441958208** since 2020.
