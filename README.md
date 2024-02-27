@@ -58,7 +58,7 @@ Funded by the [Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
 
 
 <!----------------------------------------------------------------------------->
-[Documentation]: https://www.chemotion.net/docs/labimotion/
+[Documentation]: https://www.chemotion.net/docs/labimotion
 [Technical Documentation]: https://www.rubydoc.info/gems/labimotion
 [DFG]: https://www.dfg.de/en/
 [DFG Logo]: https://www.dfg.de/zentralablage/bilder/service/logos_corporate_design/logo_negativ_267.png
