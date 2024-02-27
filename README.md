@@ -8,7 +8,7 @@ They are structured using Components, which are introduced as layers and fields.
 ![Design Principles](https://www.chemotion.net/assets/images/generic_feature_outline-a58eee8e02ca7247e54f7ad17ee2c102.png)
 
 
-## Version 1.0.18 of LabIMotion, featuring:
+## Initial version of LabIMotion, featuring:
 
 * Generic Designer
 * Workflow of Generic Element
@@ -17,7 +17,8 @@ They are structured using Components, which are introduced as layers and fields.
 * Dataset Metadata
 * LabIMotion Template Hub Synchronization [**[LabIMotion Template Hub]**]
 
----
+See [CHANGELOG](https://github.com/LabIMotion/labimotion/blob/main/CHANGELOG.md) for releases.
+
 
 This repository contains a backend service for the LabIMotion. It is written in **[Ruby]**.
 
@@ -29,22 +30,49 @@ This repository contains a backend service for the LabIMotion. It is written in 
 
   * [GitHub code](https://github.com/LabIMotion/labimotion) and [bug tracker](https://github.com/LabIMotion/labimotion/issues)
 
----
+
 
 
 ## Documentation
 
 Documentation for users **⸢ [Documentation] ⸥**
 
+The documentation is divided into several sections:
+* [Template Design Principles](https://www.chemotion.net/docs/labimotion/design-principles)
+* [Template Sync & Publish](https://www.chemotion.net/docs/labimotion/template-sync-and-publish)
+* As a Designer, to design
+  * [Elements Template](https://www.chemotion.net/docs/labimotion/guides/designer/elements)
+  * [Segmenets Template](https://www.chemotion.net/docs/labimotion/guides/designer/segments)
+  * [Datasets Template](https://www.chemotion.net/docs/labimotion/guides/designer/datasets)
+  * [Workflow](https://www.chemotion.net/docs/labimotion/guides/designer/workflow)
+    
+  and see
+    
+  * [Template Features](https://www.chemotion.net/docs/labimotion/guides/designer/template-features)
+  * [Components](https://www.chemotion.net/docs/labimotion/guides/designer/components) you can use to design the templates
+* As a User, to use
+  * [Elements](https://www.chemotion.net/docs/labimotion/guides/user/elements)
+  * [Segmenets](https://www.chemotion.net/docs/labimotion/guides/user/segments)
+  * [Datasetss](https://www.chemotion.net/docs/labimotion/guides/user/datasets)
+  * [Common Features](https://www.chemotion.net/docs/labimotion/guides/user/features)
+
 Documentation for developers **⸢ [Technical Documentation] ⸥**
 
----
+## Get in Touch
+
+The main purpose of this repository is to continually enhance LabIMotion, making it more robust and user-friendly. We appreciate the community's valuable contributions in the form of feedback, bug fixes, and improvements.
+
+Do you have questions about template design or have you encountered any issues? Please don't hesitate to [file an issue](https://github.com/LabIMotion/labimotion) for us, or reach out to us directly by [sending an email](mailto:chemotion-labimotion@lists.kit.edu).
+
+For innovative feature requests, we encourage you to create a post on our [Discussion](https://github.com/LabIMotion/labimotion/discussions) board. This method provides our core team with a more accurate gauge of the features in high demand, which is superior to GitHub issues, as the latter can be more challenging to prioritize.
+
+We kindly request that you refrain from submitting Pull Requests for new features, especially substantial ones, as there may already be ongoing work or such features may be part of our future plans. Your first step should be to initiate a conversation with us!
 
 ## License
 
 Code released under the [AGPL-3.0 License]([https://www.gnu.org/licenses/agpl-3.0.txt](https://www.gnu.org/licenses/agpl-3.0.txt)).
 
----
+
 
 ## Acknowledgments
 
