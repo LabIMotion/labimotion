@@ -133,10 +133,20 @@ module Labimotion
       raise e
     end
 
+    def split_elements(ui_state, current_user)
+      col_id = ui_state[:currentCollectionId] || 0
+      element_ids = Labimotion::Element.for_user(current_user.id).for_ui_state_with_collection(ui_state[:element], Labimotion::CollectionsElement, col_id)
+      klass_id = Labimotion::ElementKlass.find_by(name: ui_state[:element][:name])&.id
+      Labimotion::Element.where(id: element_ids, element_klass_id: klass_id).each do |element|
+        element.split(current_user, col_id)
+      end
+      {}
+    end
+
     def upload_generics_files(current_user, params)
       attach_ary = []
       att_ary = create_uploads(
-        'Element',
+        Labimotion::Prop::ELEMENT,
         params[:att_id],
         params[:elfiles],
         params[:elInfo],
@@ -146,7 +156,7 @@ module Labimotion
       (attach_ary << att_ary).flatten! unless att_ary&.empty?
 
       att_ary = create_uploads(
-        'Segment',
+        Labimotion::Prop::SEGMENT,
         params[:att_id],
         params[:sefiles],
         params[:seInfo],
@@ -166,11 +176,6 @@ module Labimotion
         )
       end
       (attach_ary << att_ary).flatten! unless att_ary&.empty?
-
-      if Labimotion::IS_RAILS5 == true
-        TransferThumbnailToPublicJob.set(queue: "transfer_thumbnail_to_public_#{current_user.id}").perform_now(attach_ary) unless attach_ary.empty?
-        TransferFileFromTmpJob.set(queue: "transfer_file_from_tmp_#{current_user.id}").perform_now(attach_ary) unless attach_ary.empty?
-      end
       true
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
@@ -195,7 +200,7 @@ module Labimotion
         layer, field = params[:sort_column].split('.')
 
         element_klass = Labimotion::ElementKlass.find_by(name: params[:el_type])
-        allowed_fields = element_klass.properties_release.dig('layers', layer, 'fields')&.pluck('field') || []
+        allowed_fields = element_klass.properties_release.dig(Labimotion::Prop::LAYERS, layer, Labimotion::Prop::FIELDS)&.pluck('field') || []
 
         if field.in?(allowed_fields)
           query = ActiveRecord::Base.sanitize_sql(
@@ -258,7 +263,7 @@ module Labimotion
         layer, field = params[:sort_column].split('.')
 
         element_klass = Labimotion::ElementKlass.find_by(name: params[:el_type])
-        allowed_fields = element_klass.properties_release.dig('layers', layer, 'fields')&.pluck('field') || []
+        allowed_fields = element_klass.properties_release.dig(Labimotion::Prop::LAYERS, layer, Labimotion::Prop::FIELDS)&.pluck('field') || []
 
         if field.in?(allowed_fields)
           query = ActiveRecord::Base.sanitize_sql(
@@ -289,37 +294,44 @@ module Labimotion
       raise e
     end
 
+    def validate_klass(attributes)
+      element_klass = Labimotion::ElementKlass.find_by(identifier: attributes['identifier'])
+      if element_klass.present?
+        if element_klass['uuid'] == attributes['uuid'] && element_klass['version'] == attributes['version']
+          return { status: 'success', message: "This element: #{attributes['name']} has the latest version!" }
+        else
+          element_klass.update!(attributes)
+          element_klass.create_klasses_revision(current_user)
+          return { status: 'success', message: "This element: [#{attributes['name']}] has been upgraded to the version: #{attributes['version']}!" }
+        end
+      else
+        exist_klass = Labimotion::ElementKlass.find_by(name: attributes['name'])
+        if exist_klass.present?
+          return { status: 'error', message: "The name [#{attributes['name']}] is already in use." }
+        else
+          attributes['created_by'] = current_user.id
+          element_klass = Labimotion::ElementKlass.create!(attributes)
+          element_klass.create_klasses_revision(current_user)
+          return { status: 'success', message: "The element: #{attributes['name']} has been created using version: #{attributes['version']}!" }
+        end
+      end
+      
+    rescue StandardError => e
+      Labimotion.log_exception(e, current_user)
+      return { status: 'error', message: e.message }
+    end
+
     def create_repo_klass(params, current_user, origin)
       response = Labimotion::TemplateHub.fetch_identifier('ElementKlass', params[:identifier], origin)
       attributes = response.slice('name', 'label', 'desc', 'icon_name', 'uuid', 'klass_prefix', 'is_generic', 'identifier', 'properties_release', 'version')
       attributes['properties_release']['identifier'] = attributes['identifier']
       attributes['properties_template'] = attributes['properties_release']
-      attributes['place'] = ((Labimotion::DatasetKlass.all.length * 10) || 0) + 10
+      attributes['place'] = ((Labimotion::ElementKlass.all.length * 10) || 0) + 10
       attributes['is_active'] = false
       attributes['updated_by'] = current_user.id
       attributes['sync_by'] = current_user.id
       attributes['sync_time'] = DateTime.now
-
-      element_klass = Labimotion::ElementKlass.find_by(identifier: attributes['identifier'])
-      if element_klass.present?
-        if element_klass['uuid'] == attributes['uuid'] && element_klass['version'] == attributes['version']
-          { status: 'success', message: "This element: #{attributes['name']} has the latest version!" }
-        else
-          element_klass.update!(attributes)
-          element_klass.create_klasses_revision(current_user)
-          { status: 'success', message: "This element: [#{attributes['name']}] has been upgraded to the version: #{attributes['version']}!" }
-        end
-      else
-        exist_klass = Labimotion::ElementKlass.find_by(name: attributes['name'])
-        if exist_klass.present?
-          { status: 'error', message: "The name [#{attributes['name']}] is already in use." }
-        else
-          attributes['created_by'] = current_user.id
-          element_klass = Labimotion::ElementKlass.create!(attributes)
-          element_klass.create_klasses_revision(current_user)
-          { status: 'success', message: "The element: #{attributes['name']} has been created using version: #{attributes['version']}!" }
-        end
-      end
+      validate_klass(attributes)
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
       # { error: e.message }

@@ -15,6 +15,7 @@ module Labimotion
   autoload :Utils, 'labimotion/utils/utils'
 
   ######## APIs
+  autoload :GenericKlassAPI, 'labimotion/apis/generic_klass_api'
   autoload :GenericElementAPI, 'labimotion/apis/generic_element_api'
   autoload :GenericDatasetAPI, 'labimotion/apis/generic_dataset_api'
   autoload :SegmentAPI, 'labimotion/apis/segment_api'
@@ -48,6 +49,7 @@ module Labimotion
   autoload :SegmentHelpers, 'labimotion/helpers/segment_helpers'
   autoload :DatasetHelpers, 'labimotion/helpers/dataset_helpers'
   autoload :SearchHelpers, 'labimotion/helpers/search_helpers'
+  autoload :ParamHelpers, 'labimotion/helpers/param_helpers'
   autoload :ConverterHelpers, 'labimotion/helpers/converter_helpers'
   autoload :SampleAssociationHelpers, 'labimotion/helpers/sample_association_helpers'
   autoload :RepositoryHelpers, 'labimotion/helpers/repository_helpers'
@@ -59,12 +61,14 @@ module Labimotion
   autoload :TemplateHub, 'labimotion/libs/template_hub'
   autoload :ExportDataset, 'labimotion/libs/export_dataset'
   autoload :SampleAssociation, 'labimotion/libs/sample_association'
+  autoload :PropertiesHandler, 'labimotion/libs/properties_handler'
 
   ######## Utils
+  autoload :Prop, 'labimotion/utils/prop'
   autoload :ConState, 'labimotion/utils/con_state'
+  autoload :FieldType, 'labimotion/utils/field_type'
   autoload :Serializer, 'labimotion/utils/serializer'
   autoload :Search, 'labimotion/utils/search'
-
 
   ######## Collection
   autoload :Export, 'labimotion/collection/export'
@@ -97,6 +101,7 @@ module Labimotion
   autoload :Segmentable, 'labimotion/models/concerns/segmentable'
   autoload :Datasetable, 'labimotion/models/concerns/datasetable'
   autoload :AttachmentConverter, 'labimotion/models/concerns/attachment_converter.rb'
+  autoload :LinkedProperties, 'labimotion/models/concerns/linked_properties'
 
 
 end

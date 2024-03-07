@@ -28,9 +28,9 @@ module Labimotion
 
     def delete_attachments
       att_ids = []
-      properties && properties['layers']&.keys&.each do |key|
-        layer = properties['layers'][key]
-        field_uploads = layer['fields'].select { |ss| ss['type'] == 'upload' }
+      properties && properties[Labimotion::Prop::LAYERS]&.keys&.each do |key|
+        layer = properties[Labimotion::Prop::LAYERS][key]
+        field_uploads = layer[Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::UPLOAD }
         field_uploads.each do |field|
           (field['value'] && field['value']['files'] || []).each do |file|
             att_ids.push(file['aid']) unless file['aid'].nil?

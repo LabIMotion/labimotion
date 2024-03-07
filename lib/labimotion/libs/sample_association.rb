@@ -34,9 +34,9 @@ module Labimotion
     def self.build_table_sample(field_tables, current_user, element = nil)
       sds = []
       field_tables.each do |field|
-        next unless field['sub_values'].present? && field['sub_fields'].present?
+        next unless field['sub_values'].present? && field[Labimotion::Prop::SUBFIELDS].present?
 
-        field_table_samples = field['sub_fields'].select { |ss| ss['type'] == 'drag_sample' }
+        field_table_samples = field[Labimotion::Prop::SUBFIELDS].select { |ss| ss['type'] == Labimotion::FieldType::DRAG_SAMPLE }
         next unless field_table_samples.present?
 
         col_ids = field_table_samples.map { |x| x.values[0] }
@@ -73,33 +73,33 @@ module Labimotion
     def self.update_sample_association(properties, current_user, element = nil)
       sds = []
       els = []
-      properties['layers'].keys.each do |key|
-        layer = properties['layers'][key]
-        field_samples = layer['fields'].select { |ss| ss['type'] == 'drag_sample' }
+      properties[Labimotion::Prop::LAYERS].keys.each do |key|
+        layer = properties[Labimotion::Prop::LAYERS][key]
+        field_samples = layer[Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::DRAG_SAMPLE }
         field_samples.each do |field|
-          idx = properties['layers'][key]['fields'].index(field)
+          idx = properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].index(field)
           sid = field.dig('value', 'el_id')
           next if sid.blank?
 
-          sds << sid unless properties.dig('layers', key, 'fields', idx, 'value', 'is_new') == true
-          next unless properties.dig('layers', key, 'fields', idx, 'value', 'is_new') == true
+          sds << sid unless properties.dig(Labimotion::Prop::LAYERS, key, Labimotion::Prop::FIELDS, idx, 'value', 'is_new') == true
+          next unless properties.dig(Labimotion::Prop::LAYERS, key, Labimotion::Prop::FIELDS, idx, 'value', 'is_new') == true
 
           cr_opt = field.dig('value', 'cr_opt')
           subsample = Labimotion::SampleAssociation.build_sample(sid, element&.collections, current_user, cr_opt) unless sid.nil? || cr_opt.nil?
           next if subsample.nil?
 
           sds << subsample.id
-          properties['layers'][key]['fields'][idx]['value']['el_id'] = subsample.id
-          properties['layers'][key]['fields'][idx]['value']['el_label'] = subsample.short_label
-          properties['layers'][key]['fields'][idx]['value']['el_tip'] = subsample.short_label
-          properties['layers'][key]['fields'][idx]['value']['is_new'] = false
+          properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_id'] = subsample.id
+          properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_label'] = subsample.short_label
+          properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_tip'] = subsample.short_label
+          properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['is_new'] = false
           Labimotion::ElementsSample.find_or_create_by(element_id: element.id, sample_id: subsample.id) if element.present?
         end
-        field_tables = properties['layers'][key]['fields'].select { |ss| ss['type'] == 'table' }
+        field_tables = properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::TABLE }
         sds << Labimotion::SampleAssociation.build_table_sample(field_tables, current_user, element) if element.present?
-        field_elements = layer['fields'].select { |ss| ss['type'] == 'drag_element' }
+        field_elements = layer[Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::DRAG_ELEMENT }
         field_elements.each do |field|
-          idx = properties['layers'][key]['fields'].index(field)
+          idx = properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].index(field)
           sid = field.dig('value', 'el_id')
           next if element.nil? || sid.blank? || sid == element.id
 

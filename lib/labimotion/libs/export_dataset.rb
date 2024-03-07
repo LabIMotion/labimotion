@@ -18,6 +18,8 @@ module Labimotion
       element_name = Container.find(id)&.root_element&.short_label
       ols = ols_name(id)
       "#{element_name}_#{ols.gsub(' ', '_')}.xlsx"
+    rescue StandardError => e
+      Labimotion.log_exception(e)
     end
 
     def ols_name(id)
@@ -32,6 +34,9 @@ module Labimotion
       name = '1H NMR' if ds.dataset_klass.ols_term_id == 'CHMO:0000593'
       name = '13C NMR' if ds.dataset_klass.ols_term_id == 'CHMO:0000595'
       name.slice(0, 26)
+    rescue StandardError => e
+      Labimotion.log_exception(e)
+      'ols_name'
     end
 
     def description(ds, id)
@@ -56,6 +61,8 @@ module Labimotion
       sheet.add_row(['Source data', 'The data from Device or Chemotion, cannot be modified once a generic dataset is created'])
       sheet.add_row([''])
       sheet.add_row([''])
+    rescue StandardError => e
+      Labimotion.log_exception(e)
     end
 
     def export(id)
@@ -74,26 +81,32 @@ module Labimotion
       layer_style = sheet.styles.add_style(b: true, bg_color: 'CEECF5')
       sheet.add_row(header, style: header_style)
 
-      layers = ds.properties['layers'] || {}
+      layers = ds.properties[Labimotion::Prop::LAYERS] || {}
+      options = ds.properties[Labimotion::Prop::SEL_OPTIONS]
       layer_keys = layers.keys.sort_by { |key| layers[key]['position'] }
       layer_keys.each do |key|
         layer = layers[key]
         sheet.add_row([layer['label'], ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '], style: layer_style)
-        sorted_fields = layer['fields'].sort_by { |obj| obj['position'] }
+        sorted_fields = layer[Labimotion::Prop::FIELDS].sort_by { |obj| obj['position'] }
         sorted_fields.each do |field|
           next if field['type'] == 'dummy'
 
           type = field['type']
           from_device = field['device'].present? ? 'Device' : ''
           from_device = field['system'].present? ? 'Chemotion' : from_device
-          type = "#{field['type']}-#{field['option_layers']}" if field['type'] == 'select' || field['type'] == 'system-defined'
+          type = "#{field['type']}-#{field['option_layers']}" if field['type'] == Labimotion::FieldType::SELECT || field['type'] == Labimotion::FieldType::SYSTEM_DEFINED
 
           show_value = field['value'] =~ /\A\d+,\d+\z/ ? field['value']&.gsub(',', '.') : field['value']
           sheet.add_row([' ', field['label'], nil, field['value_system'], field['field'], type, from_device, field['dkey'], nil].freeze)
 
-          if %w[system-defined integer].include? field['type']
-            sheet.rows.last.cells[2].type = :integer
-            sheet.rows.last.cells[8].type = :integer
+          case field['type']
+          when Labimotion::FieldType::SELECT
+            sheet.rows.last.cells[2].type = :string
+            sheet.rows.last.cells[8].type = :string
+            show_value = opt_value(field, options) if show_value.present?
+          when Labimotion::FieldType::SYSTEM_DEFINED, Labimotion::FieldType::INTEGER
+            sheet.rows.last.cells[2].type = :float
+            sheet.rows.last.cells[8].type = :float
           else
             sheet.rows.last.cells[2].type = :string
             sheet.rows.last.cells[8].type = :string
@@ -105,6 +118,19 @@ module Labimotion
         end
         # sheet.column_widths nil, nil, nil, nil, 0, 0, 0, 0, 0
       end
+    rescue StandardError => e
+      Labimotion.log_exception(e)
+    end
+
+    def opt_value(field, options)
+      return nil if field.nil? || options.nil? || field['value']&.empty? || field['option_layers']&.empty?
+      return nil unless opts = options.fetch(field['option_layers'], nil)&.fetch('options', nil)
+
+      selected = opts&.find { |ss| ss['key'] == field['value'] }
+      selected&.fetch('label', nil) || field['value']
+    rescue StandardError => e
+      Labimotion.log_exception(e)
+      field['value']
     end
 
     def spectra(id)
@@ -119,18 +145,9 @@ module Labimotion
         sheet_name = "Sheet#{idx+1}"
         sheet = @xfile.workbook.add_worksheet(name: sheet_name)
         name_mapping.push([sheet_name, att.filename])
-
-        if Labimotion::IS_RAILS5 == true
-          File.open(att.store.path) do |fi|
-            fi.each_line do |line|
-              sheet.add_row(line.split(','))
-            end
-          end
-        else
-          File.open(att.attachment_url) do |fi|
-            fi.each_line do |line|
-              sheet.add_row(line.split(','))
-            end
+        File.open(att.attachment_url) do |fi|
+          fi.each_line do |line|
+            sheet.add_row(line.split(','))
           end
         end
       end

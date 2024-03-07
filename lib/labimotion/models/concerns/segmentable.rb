@@ -16,21 +16,26 @@ module Labimotion
       segments = save_segments(segments: args[:segments], current_user_id: args[:current_user_id])
       segments.each do |segment|
         properties = segment.properties
-        properties['layers'].keys.each do |key|
-          layer = properties['layers'][key]
-          field_uploads = layer['fields'].select { |ss| ss['type'] == 'upload' }
+        properties[Labimotion::Prop::LAYERS].keys.each do |key|
+          layer = properties[Labimotion::Prop::LAYERS][key]
+          field_uploads = layer[Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::UPLOAD }
           field_uploads&.each do |upload|
-            idx = properties['layers'][key]['fields'].index(upload)
+            idx = properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].index(upload)
             files = upload["value"] && upload["value"]["files"]
             files&.each_with_index do |fi, fdx|
-              aid = properties['layers'][key]['fields'][idx]['value']['files'][fdx]['aid']
-              unless aid.nil?
-                copied_att = Attachment.find(aid)&.copy(attachable_type: 'SegmentProps', attachable_id: segment.id, transferred: true)
-                unless copied_att.nil?
-                  copied_att.save!
-                  properties['layers'][key]['fields'][idx]['value']['files'][fdx]['aid'] = copied_att.id
-                  properties['layers'][key]['fields'][idx]['value']['files'][fdx]['uid'] = copied_att.identifier
-                end
+              aid = files[fdx]['aid']
+              uid = files[fdx]['uid']
+              next if aid.nil?
+
+              att = Attachment.find_by(id: aid)
+              att = Attachment.find_by(identifier: uid) if att.nil?
+              copied_att = att&.copy(attachable_type: Labimotion::Prop::SEGMENTPROPS, attachable_id: segment.id, transferred: true)
+              if copied_att.nil?
+                properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['files'].delete_at(fdx)
+              else
+                copied_att.save!
+                properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['files'][fdx]['aid'] = copied_att.id
+                properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['files'][fdx]['uid'] = copied_att.identifier
               end
             end
           end

@@ -3,6 +3,7 @@ module Labimotion
     include Grape::Kaminari
     helpers Labimotion::GenericHelpers
     helpers Labimotion::SegmentHelpers
+    helpers Labimotion::ParamHelpers
 
     resource :segments do
       namespace :klasses do
@@ -30,11 +31,7 @@ module Labimotion
       namespace :create_segment_klass do
         desc 'create Generic Segment Klass'
         params do
-          requires :label, type: String, desc: 'Segment Klass Label'
-          requires :element_klass, type: Integer, desc: 'Element Klass Id'
-          optional :desc, type: String, desc: 'Segment Klass Desc'
-          optional :place, type: String, desc: 'Segment Klass Place', default: '100'
-          optional :properties_template, type: Hash, desc: 'Element Klass properties template'
+          use :create_segment_klass_params
         end
         after_validation do
           authenticate_admin!('segments')
@@ -50,11 +47,7 @@ module Labimotion
       namespace :update_segment_klass do
         desc 'update Generic Segment Klass'
         params do
-          requires :id, type: Integer, desc: 'Segment Klass ID'
-          optional :label, type: String, desc: 'Segment Klass Label'
-          optional :desc, type: String, desc: 'Segment Klass Desc'
-          optional :place, type: String, desc: 'Segment Klass Place', default: '100'
-          optional :identifier, type: String, desc: 'Segment Identifier'
+          use :update_segment_klass_params
         end
         after_validation do
           authenticate_admin!('segments')
@@ -137,6 +130,28 @@ module Labimotion
         rescue StandardError => e
           Labimotion.log_exception(e, current_user)
           ## { error: e.message }
+          raise e
+        end
+      end
+
+      namespace :upload_klass do
+        desc 'upload Generic Klass'
+        params do
+          use :upload_segment_klass_params
+        end
+        post do
+          declared_params = declared(params, include_missing: false)
+          attributes = declared_params.merge(
+              created_by: current_user.id,
+              released_by: current_user.id,
+              updated_by: current_user.id,
+              is_active: false
+            )
+          attr_klass = params['element_klass'] || {}
+          attributes.delete(:element_klass)
+          validate_klass(attributes, attr_klass)
+        rescue StandardError => e
+          Labimotion.log_exception(e, current_user)
           raise e
         end
       end

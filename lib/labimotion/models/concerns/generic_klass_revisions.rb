@@ -6,6 +6,11 @@ module Labimotion
     extend ActiveSupport::Concern
     included do
       # has_many :element_klasses_revisions, dependent: :destroy
+      before_save :check_identifier
+    end
+
+    def check_identifier
+      self.identifier = identifier || SecureRandom.uuid if self.has_attribute?(:identifier)
     end
 
     def create_klasses_revision(current_user)
@@ -15,7 +20,7 @@ module Labimotion
       if properties_release['flowObject'].present?
         elements = (properties_release['flowObject']['nodes'] || []).map do |el|
           if el['data'].present? && el['data']['lKey'].present?
-            layer = properties_release['layers'][el['data']['lKey']]
+            layer = properties_release[Labimotion::Prop::LAYERS][el['data']['lKey']]
             el['data']['layer'] = layer if layer.present?
           end
           el

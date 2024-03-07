@@ -2,19 +2,20 @@
 require 'labimotion/models/concerns/generic_revisions'
 require 'labimotion/models/concerns/segmentable'
 require 'labimotion/models/concerns/workflow'
+require 'labimotion/models/concerns/linked_properties'
 
 module Labimotion
   class Element < ApplicationRecord
     acts_as_paranoid
     self.table_name = :elements
-    include PgSearch if Labimotion::IS_RAILS5 == true
-    include PgSearch::Model if Labimotion::IS_RAILS5 == false
+    include PgSearch::Model
     include ElementUIStateScopes
     include Collectable
     include Taggable
     include Workflow
     include Segmentable
     include GenericRevisions
+    include LinkedProperties
 
     multisearchable against: %i[name short_label]
 
@@ -29,6 +30,8 @@ module Labimotion
     scope :by_klass_id, ->(klass_id) { where('element_klass_id = ? ', klass_id) }
 
     belongs_to :element_klass, class_name: 'Labimotion::ElementKlass'
+
+    has_ancestry orphan_strategy: :adopt
 
     has_many :collections_elements,  inverse_of: :element, dependent: :destroy, class_name: 'Labimotion::CollectionsElement'
     has_many :collections, through: :collections_elements
@@ -51,7 +54,7 @@ module Labimotion
     has_many :elements_elements, foreign_key: :parent_id, class_name: 'Labimotion::ElementsElement'
     has_many :elements, through: :elements_elements, source: :element, class_name: 'Labimotion::Element'
 
-    before_create :auto_set_short_label
+    before_save :auto_set_short_label
     after_create :update_counter
     before_destroy :delete_attachment
 
@@ -69,6 +72,10 @@ module Labimotion
     end
 
     def auto_set_short_label
+      return if short_label && !short_label_changed?
+
+      return if parent && (self.short_label = "#{parent.short_label}-#{parent.children.with_deleted.count.to_i.succ}")
+
       prefix = element_klass.klass_prefix
       if creator.counters[element_klass.name].nil?
         creator.counters[element_klass.name] = '0'
@@ -99,22 +106,24 @@ module Labimotion
     end
 
     def thumb_svg
-      if Labimotion::IS_RAILS5 == true
-        image_atts = attachments.select do |a_img|
-          a_img&.content_type&.match(Regexp.union(%w[jpg jpeg png tiff tif]))
-        end
-
-        attachment = image_atts[0] || attachments[0]
-        preview = attachment.read_thumbnail if attachment
-        preview && Base64.encode64(preview) || 'not available'
-      else
-        image_atts = attachments.select(&:type_image?)
-        attachment = image_atts[0] || attachments[0]
-        preview = attachment&.read_thumbnail
-        (preview && Base64.encode64(preview)) || 'not available'
-      end
+      image_atts = attachments.select(&:type_image?)
+      attachment = image_atts[0] || attachments[0]
+      preview = attachment&.read_thumbnail
+      (preview && Base64.encode64(preview)) || 'not available'
     end
 
+    def split(user, col_ids)
+      subelement = self.dup
+      subelement.name = self.name if self.name.present?
+      subelement.parent = self
+      subelement.properties = detach_properties(properties)
+      subelement.created_by = user.id
+      collections = (Collection.where(id: col_ids) | Collection.where(user_id: user, label: 'All', is_locked: true))
+      subelement.collections << collections
+      subelement.container = Container.create_root_container
+      subelement.save!
+      subelement
+    end
 
     def migrate_workflow
       return if properties.nil? || properties_release.nil?

@@ -28,27 +28,14 @@ module Labimotion
       att = Attachment.find_by(id: id, con_state: Labimotion::ConState::NMR)
       return if att.nil?
 
-      if Labimotion::IS_RAILS5 == true
-        Zip::File.open(att.store.path) do |zip_file|
+      if att&.attachment_attacher&.file&.url
+        Zip::File.open(att.attachment_attacher.file.url) do |zip_file|
           zip_file.each do |entry|
             if entry.name.include?('/pdata/') && entry.name.include?('parm.txt')
               metadata = entry.get_input_stream.read.force_encoding('UTF-8')
               return { is_bagit: false, metadata: metadata }
             elsif entry.name.include?('metadata/') && entry.name.include?('converter.json')
               return { is_bagit: true, metadata: nil }
-            end
-          end
-        end
-      else
-        if att&.attachment_attacher&.file&.url
-          Zip::File.open(att.attachment_attacher.file.url) do |zip_file|
-            zip_file.each do |entry|
-              if entry.name.include?('/pdata/') && entry.name.include?('parm.txt')
-                metadata = entry.get_input_stream.read.force_encoding('UTF-8')
-                return { is_bagit: false, metadata: metadata }
-              elsif entry.name.include?('metadata/') && entry.name.include?('converter.json')
-                return { is_bagit: true, metadata: nil }
-              end
             end
           end
         end
@@ -109,7 +96,7 @@ module Labimotion
       return if field['field'] != field_name || value&.empty?
 
       field['value'] = value
-      prop['layers'][layer_name]['fields'][idx] = field
+      prop[Labimotion::Prop::LAYERS][layer_name][Labimotion::Prop::FIELDS][idx] = field
       prop
     end
 
@@ -117,14 +104,14 @@ module Labimotion
       dataset = obj[:dataset]
       metadata = obj[:metadata]
       new_prop = dataset.properties
-      new_prop.dig('layers', 'general', 'fields')&.each_with_index do |fi, idx|
+      new_prop.dig(Labimotion::Prop::LAYERS, 'general', Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
         #  new_prop = set_data(new_prop, fi, idx, 'general', 'title', metadata['NAME'])
         if fi['field'] == 'title' && metadata['NAME'].present?
           ## fi['label'] = fi['label']
           fi['value'] = metadata['NAME']
           fi['device'] = metadata['NAME']
           fi['dkey'] = 'NAME'
-          new_prop['layers']['general']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['general'][Labimotion::Prop::FIELDS][idx] = fi
         end
 
         if fi['field'] == 'date' && metadata['Date_'].present?
@@ -132,7 +119,7 @@ module Labimotion
           fi['value'] = metadata['Date_']
           fi['device'] = metadata['Date_']
           fi['dkey'] = 'Date_'
-          new_prop['layers']['general']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['general'][Labimotion::Prop::FIELDS][idx] = fi
         end
 
         if fi['field'] == 'time' && metadata['Time'].present?
@@ -140,130 +127,130 @@ module Labimotion
           fi['value'] = metadata['Time']
           fi['device'] = metadata['Time']
           fi['dkey'] = 'Time'
-          new_prop['layers']['general']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['general'][Labimotion::Prop::FIELDS][idx] = fi
         end
 
         if fi['field'] == 'creator' && current_user.present?
           ## fi['label'] = fi['label']
           fi['value'] = current_user.name
-          new_prop['layers']['general']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['general'][Labimotion::Prop::FIELDS][idx] = fi
         end
       end
       element = Container.find(id)&.root_element
-      element.present? && element&.class&.name == 'Sample' && new_prop.dig('layers', 'sample_details',
-                                                                          'fields')&.each_with_index do |fi, idx|
+      element.present? && element&.class&.name == 'Sample' && new_prop.dig(Labimotion::Prop::LAYERS, 'sample_details',
+                                                                          Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
         if fi['field'] == 'label'
           fi['value'] = element.short_label
-          new_prop['layers']['sample_details']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['sample_details'][Labimotion::Prop::FIELDS][idx] = fi
         end
         if fi['field'] == 'id'
           fi['value'] = element.id
-          new_prop['layers']['sample_details']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['sample_details'][Labimotion::Prop::FIELDS][idx] = fi
         end
       end
 
-      new_prop.dig('layers', 'instrument', 'fields')&.each_with_index do |fi, idx|
+      new_prop.dig(Labimotion::Prop::LAYERS, 'instrument', Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
         if fi['field'] == 'instrument' && metadata['INSTRUM'].present?
           ## fi['label'] = fi['label']
           fi['value'] = metadata['INSTRUM']
           fi['device'] = metadata['INSTRUM']
           fi['dkey'] = 'INSTRUM'
-          new_prop['layers']['instrument']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['instrument'][Labimotion::Prop::FIELDS][idx] = fi
         end
       end
 
-      new_prop.dig('layers', 'equipment', 'fields')&.each_with_index do |fi, idx|
+      new_prop.dig(Labimotion::Prop::LAYERS, 'equipment', Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
         if fi['field'] == 'probehead' && metadata['PROBHD'].present?
           ## fi['label'] = fi['label']
           fi['value'] = metadata['PROBHD']
           fi['device'] = metadata['PROBHD']
           fi['dkey'] = 'PROBHD'
-          new_prop['layers']['equipment']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['equipment'][Labimotion::Prop::FIELDS][idx] = fi
         end
       end
 
-      new_prop.dig('layers', 'sample_preparation', 'fields')&.each_with_index do |fi, idx|
+      new_prop.dig(Labimotion::Prop::LAYERS, 'sample_preparation', Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
         if fi['field'] == 'solvent' && metadata['SOLVENT'].present?
           ## fi['label'] = fi['label']
           fi['value'] = metadata['SOLVENT']
           fi['device'] = metadata['SOLVENT']
           fi['dkey'] = 'SOLVENT'
           fi['value'] = 'chloroform-D1 (CDCl3)' if metadata['SOLVENT'] == 'CDCl3'
-          new_prop['layers']['sample_preparation']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['sample_preparation'][Labimotion::Prop::FIELDS][idx] = fi
         end
       end
 
-      new_prop.dig('layers', 'set', 'fields')&.each_with_index do |fi, idx|
+      new_prop.dig(Labimotion::Prop::LAYERS, 'set', Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
         if fi['field'] == 'temperature' && metadata['TE'].present?
           ## fi['label'] = fi['label']
           fi['value'] = metadata['TE'].split(/\s+/).first
           fi['device'] = metadata['TE']
           fi['dkey'] = 'TE'
           fi['value_system'] = metadata['TE'].split(/\s+/).last
-          new_prop['layers']['set']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
         end
         if fi['field'] == 'ns' && metadata['NS'].present?
           ## fi['label'] = fi['label']
           fi['value'] = metadata['NS']
           fi['device'] = metadata['NS']
           fi['dkey'] = 'NS'
-          new_prop['layers']['set']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
         end
         if fi['field'] == 'PULPROG' && metadata['PULPROG'].present?
           ## fi['label'] = fi['label']
           fi['value'] = metadata['PULPROG']
           fi['device'] = metadata['PULPROG']
           fi['dkey'] = 'PULPROG'
-          new_prop['layers']['set']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
         end
         if fi['field'] == 'td' && metadata['TD'].present?
           ## fi['label'] = fi['label']
           fi['value'] = metadata['TD']
           fi['device'] = metadata['TD']
           fi['dkey'] = 'TD'
-          new_prop['layers']['set']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
         end
         if fi['field'] == 'done' && metadata['D1'].present?
           ## fi['label'] = fi['label']
           fi['value'] = metadata['D1']
           fi['device'] = metadata['D1']
           fi['dkey'] = 'D1'
-          new_prop['layers']['set']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
         end
         if fi['field'] == 'sf' && metadata['SF'].present?
           ## fi['label'] = fi['label']
           fi['value'] = metadata['SF']
           fi['device'] = metadata['SF']
           fi['dkey'] = 'SF'
-          new_prop['layers']['set']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
         end
         if fi['field'] == 'sfoone' && metadata['SFO1'].present?
           ## fi['label'] = fi['label']
           fi['value'] = metadata['SFO1']
           fi['device'] = metadata['SFO1']
           fi['dkey'] = 'SFO1'
-          new_prop['layers']['set']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
         end
         if fi['field'] == 'sfotwo' && metadata['SFO2'].present?
           ## fi['label'] = fi['label']
           fi['value'] = metadata['SFO2']
           fi['device'] = metadata['SFO2']
           fi['dkey'] = 'SFO2'
-          new_prop['layers']['set']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
         end
         if fi['field'] == 'nucone' && metadata['NUC1'].present?
           ## fi['label'] = fi['label']
           fi['value'] = metadata['NUC1']
           fi['device'] = metadata['NUC1']
           fi['dkey'] = 'NUC1'
-          new_prop['layers']['set']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
         end
         if fi['field'] == 'nuctwo' && metadata['NUC2'].present?
           ## fi['label'] = fi['label']
           fi['value'] = metadata['NUC2']
           fi['device'] = metadata['NUC2']
           fi['dkey'] = 'NUC2'
-          new_prop['layers']['set']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
         end
       end
       dataset.properties = new_prop

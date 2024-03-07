@@ -27,18 +27,10 @@ module Labimotion
 
       dsr = []
       ols = nil
-      if Labimotion::IS_RAILS5 == true
-        Zip::File.open(att.store.path) do |zip_file|
-          res = Labimotion::Converter.collect_metadata(zip_file) if att.filename.split('.')&.last == 'zip'
-          ols = res[:o] unless res&.dig(:o).nil?
-          dsr.push(res[:d]) unless res&.dig(:d).nil?
-        end
-      else
-        Zip::File.open(att.attachment_attacher.file.url) do |zip_file|
-          res = Labimotion::Converter.collect_metadata(zip_file) if att.filename.split('.')&.last == 'zip'
-          ols = res[:o] unless res&.dig(:o).nil?
-          dsr.push(res[:d]) unless res&.dig(:d).nil?
-        end
+      Zip::File.open(att.attachment_attacher.file.url) do |zip_file|
+        res = Labimotion::Converter.collect_metadata(zip_file) if att.filename.split('.')&.last == 'zip'
+        ols = res[:o] unless res&.dig(:o).nil?
+        dsr.push(res[:d]) unless res&.dig(:d).nil?
       end
       dsr.flatten!
       dataset = build_ds(att.attachable_id, ols)
@@ -145,16 +137,9 @@ module Labimotion
           created_by: oat.created_by,
           created_for: oat.created_for,
         )
-        # att.attachment_attacher.attach(tmp_file)
-        if att.valid? && Labimotion::IS_RAILS5 == false
-          ## att.attachment_attacher.create_derivatives
-          att.save!
-        end
-        if att.valid? && Labimotion::IS_RAILS5 == true
-          att.save!
-          primary_store = Rails.configuration.storage.primary_store
-          att.update!(storage: primary_store)
-        end
+
+        att.save! if att.valid?
+
         process_ds(att.id)
       rescue StandardError => e
         raise e
@@ -168,11 +153,7 @@ module Labimotion
       response = nil
       begin
         ofile = Rails.root.join(data[:f], data[:a].filename)
-        if Labimotion::IS_RAILS5 == true
-          FileUtils.cp(data[:a].store.path, ofile)
-        else
-          FileUtils.cp(data[:a].attachment_url, ofile)
-        end
+        FileUtils.cp(data[:a].attachment_url, ofile)
 
         File.open(ofile, 'r') do |f|
           body = { file: f }
@@ -247,38 +228,38 @@ module Labimotion
     end
 
     def self.update_ds(dataset, dsr, current_user = nil) # rubocop: disable Metrics/PerceivedComplexity
-      layers = dataset.properties['layers'] || {}
+      layers = dataset.properties[Labimotion::Prop::LAYERS] || {}
       new_prop = dataset.properties
       dsr.each do |ds|
         layer = layers[ds[:layer]]
-        next if layer.nil? || layer['fields'].nil?
+        next if layer.nil? || layer[Labimotion::Prop::FIELDS].nil?
 
-        fields = layer['fields'].select{ |f| f['field'] == ds[:field] }
+        fields = layer[Labimotion::Prop::FIELDS].select{ |f| f['field'] == ds[:field] }
         fi = fields&.first
-        idx = layer['fields'].find_index(fi)
+        idx = layer[Labimotion::Prop::FIELDS].find_index(fi)
         fi['value'] = ds[:value]
         fi['device'] = ds[:device] || ds[:value]
-        new_prop['layers'][ds[:layer]]['fields'][idx] = fi
+        new_prop[Labimotion::Prop::LAYERS][ds[:layer]][Labimotion::Prop::FIELDS][idx] = fi
       end
-      new_prop.dig('layers', 'general', 'fields')&.each_with_index do |fi, idx|
+      new_prop.dig(Labimotion::Prop::LAYERS, 'general', Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
         if fi['field'] == 'creator' && current_user.present?
           fi['value'] = current_user.name
           fi['system'] = current_user.name
-          new_prop['layers']['general']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['general'][Labimotion::Prop::FIELDS][idx] = fi
         end
       end
       element = Container.find(dataset.element_id)&.root_element
-      element.present? && element&.class&.name == 'Sample' && new_prop.dig('layers', 'sample_details', 'fields')&.each_with_index do |fi, idx|
+      element.present? && element&.class&.name == 'Sample' && new_prop.dig(Labimotion::Prop::LAYERS, 'sample_details', Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
         if fi['field'] == 'id'
           fi['value'] = element.id
           fi['system'] = element.id
-          new_prop['layers']['sample_details']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['sample_details'][Labimotion::Prop::FIELDS][idx] = fi
         end
 
         if fi['field'] == 'label'
           fi['value'] = element.short_label
           fi['system'] = element.short_label
-          new_prop['layers']['sample_details']['fields'][idx] = fi
+          new_prop[Labimotion::Prop::LAYERS]['sample_details'][Labimotion::Prop::FIELDS][idx] = fi
         end
       end
       dataset.properties = new_prop
@@ -344,9 +325,9 @@ module Labimotion
 
     def self.metadata(id)
       att = Attachment.find(id)
-      return if att.nil? || att.attachable_id.nil? || att.attachable_type != 'Container'
+      return if att.nil? || att.attachable_id.nil? || att.attachable_type != Labimotion::Prop::CONTAINER
 
-      ds = Labimotion::Dataset.find_by(element_type: 'Container', element_id: att.attachable_id)
+      ds = Labimotion::Dataset.find_by(element_type: Labimotion::Prop::CONTAINER, element_id: att.attachable_id)
       att.update_column(:con_state, Labimotion::ConState::COMPLETED) if ds.present?
       process_ds(att.id) if ds.nil?
     end

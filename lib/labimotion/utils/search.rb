@@ -30,7 +30,7 @@ module Labimotion
               query_field = { "fields": [{ "field": f[:field].to_s, "sub_fields": sfs }] } unless sfs.empty?
             elsif %w[checkbox integer system-defined].include? f[:type]
               query_field = { "fields": [{ "field": f[:field].to_s, "value": f[:value] }] }
-            elsif %w[drag_element drag_molecule drag_sample].include? f[:type]
+            elsif Labimotion::FieldType::DRAG_ALL.include? f[:type]
               vfs = { "el_label": f[:value] }
               query_field = { "fields": [{ "field": f[:field].to_s, "value": vfs }] } unless f[:value].empty?
             else
@@ -70,7 +70,7 @@ module Labimotion
                 query_field = { "fields": [{ "field": f[:field].to_s, "sub_fields": sfs }] } unless sfs.empty?
               elsif %w[checkbox integer system-defined].include? f[:type]
                 query_field = { "fields": [{ "field": f[:field].to_s, "value": f[:value] }] }
-              elsif %w[drag_element drag_molecule drag_sample].include? f[:type]
+              elsif Labimotion::FieldType::DRAG_ALL.include? f[:type]
                 vfs = { "el_label": f[:value] }
                 query_field = { "fields": [{ "field": f[:field].to_s, "value": vfs }] } unless f[:value].empty?
               else

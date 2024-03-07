@@ -107,9 +107,9 @@ module Labimotion
 
     def fetch_properties_uploads(properties)
       uploads = []
-      properties['layers'].keys.each do |key|
-        layer = properties['layers'][key]
-        field_uploads = layer['fields'].select { |ss| ss['type'] == 'upload' }
+      properties[Labimotion::Prop::LAYERS].keys.each do |key|
+        layer = properties[Labimotion::Prop::LAYERS][key]
+        field_uploads = layer[Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::UPLOAD }
         field_uploads.each do |field|
           ((field['value'] && field['value']['files']) || []).each do |file|
             uploads.push({ layer: key, field: field['field'], uid: file['uid'], filename: file['filename'] })
@@ -125,10 +125,10 @@ module Labimotion
     def update_properties_upload(element, properties, att, pa)
       return if pa.nil?
 
-      idx = properties['layers'][pa[:layer]]['fields'].index { |fl| fl['field'] == pa[:field] }
-      fidx = properties['layers'][pa[:layer]]['fields'][idx]['value']['files'].index { |fi| fi['uid'] == pa[:uid] }
-      properties['layers'][pa[:layer]]['fields'][idx]['value']['files'][fidx]['aid'] = att.id
-      properties['layers'][pa[:layer]]['fields'][idx]['value']['files'][fidx]['uid'] = att.identifier
+      idx = properties[Labimotion::Prop::LAYERS][pa[:layer]][Labimotion::Prop::FIELDS].index { |fl| fl['field'] == pa[:field] }
+      fidx = properties[Labimotion::Prop::LAYERS][pa[:layer]][Labimotion::Prop::FIELDS][idx]['value']['files'].index { |fi| fi['uid'] == pa[:uid] }
+      properties[Labimotion::Prop::LAYERS][pa[:layer]][Labimotion::Prop::FIELDS][idx]['value']['files'][fidx]['aid'] = att.id
+      properties[Labimotion::Prop::LAYERS][pa[:layer]][Labimotion::Prop::FIELDS][idx]['value']['files'][fidx]['uid'] = att.identifier
       element.update_columns(properties: properties)
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
@@ -143,9 +143,9 @@ module Labimotion
       map_info&.keys&.each do |key|
         next if map_info[key]['files'].empty?
 
-        if type == 'Segment'
+        if type == Labimotion::Prop::SEGMENT
           element = Labimotion::Segment.find_by(element_id: id, segment_klass_id: key)
-        elsif type == 'Element'
+        elsif type == Labimotion::Prop::ELEMENT
           element = Labimotion::Element.find_by(id: id)
         end
         next if element.nil?

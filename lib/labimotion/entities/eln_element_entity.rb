@@ -24,47 +24,47 @@ module Labimotion
     private
 
     def properties
-      (object.properties['layers']&.keys || []).each do |key|
+      (object.properties[Labimotion::Prop::LAYERS]&.keys || []).each do |key|
         # layer = object.properties[key]
-        field_sample_molecules = object.properties['layers'][key]['fields'].select do |ss|
-          ss['type'] == 'drag_sample' || ss['type'] == 'drag_molecule'
+        field_sample_molecules = object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].select do |ss|
+          ss['type'] == Labimotion::FieldType::DRAG_SAMPLE || ss['type'] == Labimotion::FieldType::DRAG_MOLECULE
         end
         field_sample_molecules.each do |field|
-          idx = object.properties['layers'][key]['fields'].index(field)
+          idx = object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].index(field)
           sid = field.dig('value', 'el_id')
           next unless sid.present?
 
-          el = field['type'] == 'drag_sample' ? Sample.find_by(id: sid) : Molecule.find_by(id: sid)
+          el = field['type'] == Labimotion::FieldType::DRAG_SAMPLE ? Sample.find_by(id: sid) : Molecule.find_by(id: sid)
           next unless el.present?
-          next unless object.properties.dig('layers', key, 'fields', idx, 'value').present?
+          next unless object.properties.dig(Labimotion::Prop::LAYERS, key, Labimotion::Prop::FIELDS, idx, 'value').present?
 
-          if field['type'] == 'drag_sample'
-            object.properties['layers'][key]['fields'][idx]['value']['el_label'] =
+          if field['type'] == Labimotion::FieldType::DRAG_SAMPLE
+            object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_label'] =
               el.short_label
           end
-          if field['type'] == 'drag_sample'
-            object.properties['layers'][key]['fields'][idx]['value']['el_tip'] =
+          if field['type'] == Labimotion::FieldType::DRAG_SAMPLE
+            object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_tip'] =
               el.short_label
           end
-          object.properties['layers'][key]['fields'][idx]['value']['el_svg'] =
-            field['type'] == 'drag_sample' ? el.get_svg_path : File.join('/images', 'molecules', el.molecule_svg_file)
+          object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_svg'] =
+            field['type'] == Labimotion::FieldType::DRAG_SAMPLE ? el.get_svg_path : File.join('/images', 'molecules', el.molecule_svg_file)
         end
 
-        field_tables = object.properties['layers'][key]['fields'].select { |ss| ss['type'] == 'table' }
+        field_tables = object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::TABLE }
         field_tables.each do |field|
-          idx = object.properties['layers'][key]['fields'].index(field)
-          next unless field['sub_values'].present? && field['sub_fields'].present?
+          idx = object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].index(field)
+          next unless field['sub_values'].present? && field[Labimotion::Prop::SUBFIELDS].present?
 
-          field_table_molecules = field['sub_fields'].select { |ss| ss['type'] == 'drag_molecule' }
+          field_table_molecules = field[Labimotion::Prop::SUBFIELDS].select { |ss| ss['type'] == Labimotion::FieldType::DRAG_MOLECULE }
           if field_table_molecules.present?
-            object.properties['layers'][key]['fields'][idx] =
-              set_table(field, field_table_molecules, 'Molecule')
+            object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx] =
+              set_table(field, field_table_molecules, Labimotion::Prop::MOLECULE)
           end
 
-          field_table_samples = field['sub_fields'].select { |ss| ss['type'] == 'drag_sample' }
+          field_table_samples = field[Labimotion::Prop::SUBFIELDS].select { |ss| ss['type'] == Labimotion::FieldType::DRAG_SAMPLE }
           if field_table_samples.present?
-            object.properties['layers'][key]['fields'][idx] =
-              set_table(field, field_table_samples, 'Sample')
+            object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx] =
+              set_table(field, field_table_samples, Labimotion::Prop::SAMPLE)
           end
         end
       end
@@ -87,13 +87,13 @@ module Labimotion
           next unless find_obj.present?
 
           case obj
-          when 'Molecule'
+          when Labimotion::Prop::MOLECULE
             sub_value[col_id]['value']['el_svg'] = File.join('/images', 'molecules', find_obj.molecule_svg_file)
             sub_value[col_id]['value']['el_inchikey'] = find_obj.inchikey
             sub_value[col_id]['value']['el_smiles'] = find_obj.cano_smiles
             sub_value[col_id]['value']['el_iupac'] = find_obj.iupac_name
             sub_value[col_id]['value']['el_molecular_weight'] = find_obj.molecular_weight
-          when 'Sample'
+          when Labimotion::Prop::SAMPLE
             sub_value[col_id]['value']['el_svg'] = find_obj.get_svg_path
             sub_value[col_id]['value']['el_label'] = find_obj.short_label
             sub_value[col_id]['value']['el_short_label'] = find_obj.short_label

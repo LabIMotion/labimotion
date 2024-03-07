@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require 'labimotion/version'
+require 'labimotion/libs/export_element'
+
 module Labimotion
   # Generic Element API
   class GenericElementAPI < Grape::API
@@ -11,6 +13,7 @@ module Labimotion
     helpers Labimotion::SampleAssociationHelpers
     helpers Labimotion::GenericHelpers
     helpers Labimotion::ElementHelpers
+    helpers Labimotion::ParamHelpers
 
     resource :generic_elements do
       namespace :klass do
@@ -41,15 +44,41 @@ module Labimotion
         end
       end
 
+      namespace :export do
+        desc 'export element'
+        params do
+          requires :id, type: Integer, desc: 'element id'
+          requires :klass, type: String, desc: 'Klass', values: %w[Element Segment Dataset]
+          optional :export_format, type: String, desc: 'export format'
+        end
+        get do
+          case params[:klass]
+          when 'Element'
+            element = Labimotion::Element.find(params[:id])
+          when 'Segment'
+            element = Labimotion::Segment.find(params[:id])
+          when 'Dataset'
+            element = Labimotion::Dataset.find(params[:id])
+          end
+          export = Labimotion::ExportElement.new current_user, element, params[:export_format]
+          env['api.format'] = :binary
+          content_type 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          el_filename = export.res_name
+          filename = URI.escape(el_filename)
+          # header['Content-Disposition'] = "attachment; filename=abc.docx"
+          header('Content-Disposition', "attachment; filename=\"#{filename}\"")
+
+          export.to_docx
+        rescue StandardError => e
+          Labimotion.log_exception(e, current_user)
+          { klass: [] }
+        end
+      end
+
       namespace :create_element_klass do
         desc 'create Generic Element Klass'
         params do
-          requires :name, type: String, desc: 'Element Klass Name'
-          requires :label, type: String, desc: 'Element Klass Label'
-          requires :klass_prefix, type: String, desc: 'Element Klass Short Label Prefix'
-          optional :icon_name, type: String, desc: 'Element Klass Icon Name'
-          optional :desc, type: String, desc: 'Element Klass Desc'
-          optional :properties_template, type: Hash, desc: 'Element Klass properties template'
+          use :create_element_klass_params
         end
         post do
           authenticate_admin!('elements')
@@ -63,12 +92,7 @@ module Labimotion
       namespace :update_element_klass do
         desc 'update Generic Element Klass'
         params do
-          requires :id, type: Integer, desc: 'Element Klass ID'
-          optional :label, type: String, desc: 'Element Klass Label'
-          optional :klass_prefix, type: String, desc: 'Element Klass Short Label Prefix'
-          optional :icon_name, type: String, desc: 'Element Klass Icon Name'
-          optional :desc, type: String, desc: 'Element Klass Desc'
-          optional :place, type: String, desc: 'Element Klass Place'
+          use :update_element_klass_params
         end
         post do
           authenticate_admin!('elements')
@@ -272,6 +296,39 @@ module Labimotion
         end
       end
 
+      namespace :upload_klass do
+        desc 'upload Generic Klass'
+        params do
+          use :upload_element_klass_params
+        end
+        post do
+          declared_params = declared(params, include_missing: false)
+          attributes = declared_params.merge(
+              created_by: current_user.id,
+              released_by: current_user.id,
+              updated_by: current_user.id,
+              is_active: false
+            )
+            validate_klass(attributes)
+        rescue StandardError => e
+          Labimotion.log_exception(e, current_user)
+          raise e
+        end
+      end
+
+      namespace :split do
+        desc 'split elements'
+        params do
+          requires :ui_state, type: Hash, desc: 'Selected elements from the UI'
+        end
+        post do
+          split_elements(params[:ui_state], current_user)
+        rescue StandardError => e
+          Labimotion.log_exception(e, current_user)
+          { error: e.message }
+        end
+      end      
+
       desc 'Return serialized elements of current user'
       params do
         optional :collection_id, type: Integer, desc: 'Collection id'
@@ -285,18 +342,13 @@ module Labimotion
       paginate per_page: 7, offset: 0, max_per_page: 100
       get do
         scope = list_serialized_elements(params, current_user)
-
         reset_pagination_page(scope)
-        if Labimotion::IS_RAILS5 == true
-          generic_elements = paginate(scope).map { |s| ElementListPermissionProxy.new(current_user, s, user_ids).serialized }
-        else
-          generic_elements = paginate(scope).map do |element|
-            Labimotion::ElementEntity.represent(
-              element,
-              displayed_in_list: true,
-              detail_levels: ElementDetailLevelCalculator.new(user: current_user, element: element).detail_levels,
-            )
-          end
+        generic_elements = paginate(scope).map do |element|
+          Labimotion::ElementEntity.represent(
+            element,
+            displayed_in_list: true,
+            detail_levels: ElementDetailLevelCalculator.new(user: current_user, element: element).detail_levels,
+          )
         end
         { generic_elements: generic_elements }
       rescue StandardError => e
@@ -318,22 +370,14 @@ module Labimotion
 
         get do
           element = Labimotion::Element.find(params[:id])
-          if Labimotion::IS_RAILS5 == true
-            {
-              element: ElementPermissionProxy.new(current_user, element, user_ids).serialized,
-              attachments: attach_thumbnail(element&.attachments)
-            }
-          else
-            #byebug
-            {
-              element: Labimotion::ElementEntity.represent(
-                element,
-                detail_levels: ElementDetailLevelCalculator.new(user: current_user, element: element).detail_levels,
-                policy: @element_policy
-              ),
-              attachments: attach_thumbnail(element&.attachments)
-            }
-          end
+          {
+            element: Labimotion::ElementEntity.represent(
+              element,
+              detail_levels: ElementDetailLevelCalculator.new(user: current_user, element: element).detail_levels,
+              policy: @element_policy
+            ),
+            attachments: attach_thumbnail(element&.attachments)
+          }
         rescue StandardError => e
           Labimotion.log_exception(e, current_user)
         end
@@ -341,30 +385,17 @@ module Labimotion
 
       desc 'Create a element'
       params do
-        requires :element_klass, type: Hash
-        requires :name, type: String
-        optional :properties, type: Hash
-        optional :properties_release, type: Hash
-        optional :collection_id, type: Integer
-        requires :container, type: Hash
-        optional :segments, type: Array, desc: 'Segments'
+        use :create_element_params
       end
       post do
         begin
           element = create_element(current_user, params)
-          if Labimotion::IS_RAILS5 == true
-            {
-              element: ElementPermissionProxy.new(current_user, element, user_ids).serialized,
-              attachments: attach_thumbnail(element&.attachments)
-            }
-          else
-            present(
-              element,
-              with: Labimotion::ElementEntity,
-              root: :element,
-              detail_levels: ElementDetailLevelCalculator.new(user: current_user, element: element).detail_levels,
-            )
-          end
+          present(
+            element,
+            with: Labimotion::ElementEntity,
+            root: :element,
+            detail_levels: ElementDetailLevelCalculator.new(user: current_user, element: element).detail_levels,
+          )
         rescue StandardError => e
           Labimotion.log_exception(e, current_user)
           raise e
@@ -373,12 +404,7 @@ module Labimotion
 
       desc 'Update element by id'
       params do
-        requires :id, type: Integer, desc: 'element id'
-        optional :name, type: String
-        requires :properties, type: Hash
-        optional :properties_release, type: Hash
-        requires :container, type: Hash
-        optional :segments, type: Array, desc: 'Segments'
+        use :update_element_params
       end
       route_param :id do
         before do
@@ -388,26 +414,19 @@ module Labimotion
         put do
           begin
             element = update_element_by_id(current_user, params)
-            if Labimotion::IS_RAILS5 == true
-              {
-                element: ElementPermissionProxy.new(current_user, element, user_ids).serialized,
-                attachments: attach_thumbnail(element&.attachments)
-              }
-            else
-              {
-                element: Labimotion::ElementEntity.represent(
-                  element,
-                  detail_levels: ElementDetailLevelCalculator.new(user: current_user, element: element).detail_levels,
-                ),
-                attachments: attach_thumbnail(element&.attachments),
-              }
-            end
+            {
+              element: Labimotion::ElementEntity.represent(
+                element,
+                detail_levels: ElementDetailLevelCalculator.new(user: current_user, element: element).detail_levels,
+              ),
+              attachments: attach_thumbnail(element&.attachments),
+            }
           rescue StandardError => e
             Labimotion.log_exception(e, current_user)
             raise e
           end
         end
-      end
+      end      
     end
   end
 end
