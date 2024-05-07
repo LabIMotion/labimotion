@@ -18,6 +18,9 @@ module Labimotion
       elsif result[:metadata] == nil
         Labimotion::ConState::NONE
       else
+        ds = Container.find_by(id: att.attachable_id)
+        return if ds.nil? || ds.parent&.container_type != 'analysis'
+
         data = process(att, id, result[:metadata])
         generate_ds(id, att.attachable_id, data, current_user)
         Labimotion::ConState::COMPLETED
