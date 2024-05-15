@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require 'labimotion/conf'
 require 'labimotion/models/concerns/generic_klass_revisions'
 require 'labimotion/models/concerns/workflow'
 
@@ -18,7 +19,8 @@ module Labimotion
       klasses = []
     ensure
       File.write(
-        Rails.root.join('app/packs/klasses.json'),
+        # Rails.root.join('app/packs/klasses.json'),
+        Labimotion::KLASSES_JSON,
         klasses&.to_json || []
       )
     end

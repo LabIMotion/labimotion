@@ -9,9 +9,9 @@ module Labimotion
     extend Grape::API::Helpers
 
     def klass_list(el_klass, is_active=false)
-      scope = SegmentKlass.all
+      scope = Labimotion::SegmentKlass.all
       scope = scope.where(is_active: is_active) if is_active.present? && is_active == true
-      scope = scope.joins(:element_klass).where(klass_element: params[:element], is_active: true) if el_klass.present?
+      scope = scope.joins(:element_klass).where(klass_element: params[:element], is_active: true).preload(:element_klass) if el_klass.present?
       scope.order('place') || []
     end
 
@@ -107,9 +107,9 @@ module Labimotion
       attributes['updated_by'] = current_user.id
       attributes['sync_by'] = current_user.id
       attributes['sync_time'] = DateTime.now
-      attr_klass = response.dig('element_klass', {})        # response['element_klass']
+      attr_klass = response['element_klass']    ## response.dig('element_klass', {})        # response['element_klass']
       validate_klass(attributes, attr_klass)
-      
+
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
       raise e

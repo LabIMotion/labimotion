@@ -16,6 +16,22 @@ module Labimotion
       self.class.name == 'Container' && container_type != 'dataset'
     end
 
+    def copy_dataset(orig_ds)
+      return if orig_ds.dataset.nil?
+
+      ods = orig_ds.dataset
+      uuid = SecureRandom.uuid
+      dataset = Labimotion::Dataset.create!(
+        uuid: uuid,
+        dataset_klass_id: ods.dataset_klass_id,
+        element_type: 'Container',
+        element_id: self.id,
+        properties: ods.properties,
+        properties_release: ods.properties_release,
+        klass_uuid: ods.klass_uuid,
+      )
+    end
+
     def save_dataset(**args)
       return if not_dataset?
 

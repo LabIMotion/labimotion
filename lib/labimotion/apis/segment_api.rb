@@ -125,7 +125,7 @@ module Labimotion
         end
         post do
           msg = create_repo_klass(params, current_user, request.headers['Origin'])
-          klass = Labimotion::SegmentKlassEntity.represent(SegmentKlass.all)
+          klass = Labimotion::SegmentKlassEntity.represent(Labimotion::SegmentKlass.all)
           { status: msg[:status], message: msg[:message], klass: klass }
         rescue StandardError => e
           Labimotion.log_exception(e, current_user)

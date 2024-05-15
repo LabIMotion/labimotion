@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'labimotion/version'
+require 'labimotion/conf'
 require 'labimotion/libs/export_element'
 
 module Labimotion
@@ -10,12 +10,26 @@ module Labimotion
     helpers ContainerHelpers
     helpers ParamsHelpers
     helpers CollectionHelpers
+    helpers UserLabelHelpers
     helpers Labimotion::SampleAssociationHelpers
     helpers Labimotion::GenericHelpers
     helpers Labimotion::ElementHelpers
     helpers Labimotion::ParamHelpers
 
     resource :generic_elements do
+      # might be removed because the file is moved to public folder
+      namespace :current do
+        desc 'Return serialized elements of current user'
+        get do
+          klasses_json_path = Labimotion::KLASSES_JSON # Rails.root.join('app/packs/klasses.json')
+          klasses = JSON.parse(File.read(klasses_json_path))
+          { klasses: klasses }
+        rescue StandardError => e
+          Labimotion.log_exception(e, current_user)
+          { klasses: [] }
+        end
+      end
+
       namespace :klass do
         desc 'get klass info'
         params do
@@ -234,7 +248,7 @@ module Labimotion
         end
         post do
           msg = create_repo_klass(params, current_user, request.headers['Origin'])
-          klass = Labimotion::ElementKlassEntity.represent(ElementKlass.all)
+          klass = Labimotion::ElementKlassEntity.represent(Labimotion::ElementKlass.all)
           { status: msg[:status], message: msg[:message], klass: klass }
         rescue StandardError => e
           Labimotion.log_exception(e, current_user)
@@ -327,7 +341,7 @@ module Labimotion
           Labimotion.log_exception(e, current_user)
           { error: e.message }
         end
-      end      
+      end
 
       desc 'Return serialized elements of current user'
       params do
@@ -336,6 +350,7 @@ module Labimotion
         optional :el_type, type: String, desc: 'element klass name'
         optional :from_date, type: Integer, desc: 'created_date from in ms'
         optional :to_date, type: Integer, desc: 'created_date to in ms'
+        optional :user_label, type: Integer, desc: 'user label'
         optional :filter_created_at, type: Boolean, desc: 'filter by created at or updated at'
         optional :sort_column, type: String, desc: 'sort by updated_at or selected layers property'
       end
@@ -362,7 +377,7 @@ module Labimotion
       end
       route_param :id do
         before do
-          @element_policy = ElementPolicy.new(current_user, Element.find(params[:id]))
+          @element_policy = ElementPolicy.new(current_user, Labimotion::Element.find(params[:id]))
           error!('401 Unauthorized', 401) unless current_user.matrix_check_by_name('genericElement') && @element_policy.read?
         rescue ActiveRecord::RecordNotFound
           error!('404 Not Found', 404)
@@ -426,7 +441,7 @@ module Labimotion
             raise e
           end
         end
-      end      
+      end
     end
   end
 end

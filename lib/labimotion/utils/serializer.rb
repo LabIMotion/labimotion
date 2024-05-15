@@ -13,7 +13,7 @@ module Labimotion
 
           case obj
           when Labimotion::Prop::MOLECULE
-            sub_value[col_id]['value']['el_svg'] = File.join('/images', 'molecules', find_obj.molecule_svg_file)
+            sub_value[col_id]['value']['el_svg'] = File.join('/images', 'molecules', find_obj.molecule_svg_file) if find_obj&.molecule_svg_file&.present?
             sub_value[col_id]['value']['el_inchikey'] = find_obj.inchikey
             sub_value[col_id]['value']['el_smiles'] = find_obj.cano_smiles
             sub_value[col_id]['value']['el_iupac'] = find_obj.iupac_name
@@ -56,7 +56,7 @@ module Labimotion
           object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_tip'] = el.short_label if %w[drag_sample].include?(field['type'])
           object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_tip'] = "#{el.element_klass&.label}@@#{el.name}" if %w[drag_element].include?(field['type'])
           object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['icon_name'] = el.element_klass&.icon_name || '' if %w[drag_element].include?(field['type'])
-          object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_svg'] = field['type'] == Labimotion::FieldType::DRAG_SAMPLE ? el.get_svg_path : File.join('/images', 'molecules', el.molecule_svg_file) if Labimotion::FieldType::DRAG_MS.include?(field['type'])
+          object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_svg'] = field['type'] == Labimotion::FieldType::DRAG_SAMPLE ? el.get_svg_path : File.join('/images', 'molecules', el&.molecule_svg_file || 'nosvg') if Labimotion::FieldType::DRAG_MS.include?(field['type'])
           object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_decoupled'] = el.decoupled if %w[drag_sample].include?(field['type'])
         end
 

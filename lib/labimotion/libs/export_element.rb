@@ -91,6 +91,20 @@ module Labimotion
           obj_final = OpenStruct.new(obj_os)
           field_obj[:structure] = Reporter::Docx::DiagramSample.new(obj: obj_final, format: 'png').generate
         end
+      when Labimotion::FieldType::SYS_REACTION
+        val = field.fetch('value', nil)
+        if val.present?
+          instance = Reaction.find_by(id: val['el_id'])
+          field_obj[:value] = val['el_label']
+          field_obj[:has_structure] = true
+          obj_os = Entities::ReactionReportEntity.new(
+            instance,
+            current_user: @current_user,
+            detail_levels: ElementDetailLevelCalculator.new(user: @current_user, element: instance).detail_levels,
+          ).serializable_hash
+          obj_final = OpenStruct.new(obj_os)
+          field_obj[:structure] = Reporter::Docx::DiagramReaction.new(obj: obj_final, format: 'png').generate
+        end
       when Labimotion::FieldType::DRAG_MOLECULE
         val = field.fetch('value', nil)
         if val.present?

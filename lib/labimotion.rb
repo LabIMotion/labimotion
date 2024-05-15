@@ -1,6 +1,7 @@
 # In your_gem_name.rb or main Ruby file
 module Labimotion
 
+  autoload :CONF, 'labimotion/conf'
   autoload :VERSION, 'labimotion/version'
 
   def self.logger
@@ -62,6 +63,7 @@ module Labimotion
   autoload :ExportDataset, 'labimotion/libs/export_dataset'
   autoload :SampleAssociation, 'labimotion/libs/sample_association'
   autoload :PropertiesHandler, 'labimotion/libs/properties_handler'
+  autoload :AttachmentHandler, 'labimotion/libs/attachment_handler'
 
   ######## Utils
   autoload :Prop, 'labimotion/utils/prop'

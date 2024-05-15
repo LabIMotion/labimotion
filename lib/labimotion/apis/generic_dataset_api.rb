@@ -41,7 +41,7 @@ module Labimotion
         end
         post do
           msg = create_repo_klass(params, current_user, request.headers['Origin'])
-          klass = Labimotion::DatasetKlassEntity.represent(DatasetKlass.all)
+          klass = Labimotion::DatasetKlassEntity.represent(Labimotion::DatasetKlass.all)
           { status: msg[:status], message: msg[:message], klass: klass }
         rescue StandardError => e
           Labimotion.log_exception(e, current_user)

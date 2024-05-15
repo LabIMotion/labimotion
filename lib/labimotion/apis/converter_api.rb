@@ -35,6 +35,35 @@ module Labimotion
         end
       end
 
+      resource :structure do
+        helpers do
+          def convert_structure(molfile)
+            molecule_viewer = Matrice.molecule_viewer
+            if molecule_viewer.blank? || molecule_viewer[:chembox].blank?
+              { molfile: molfile }
+            else
+              options = { timeout: 10, body: { mol: molfile }.to_json, headers: { 'Content-Type' => 'application/json' } }
+              response = HTTParty.post("#{molecule_viewer[:chembox]}/core/rdkit/v1/structure", options)
+              if response.code == 200
+                { molfile: (response.parsed_response && response.parsed_response['molfile']) || molfile }
+              else
+                { molfile: molfile }
+              end
+            end
+          end
+        end
+        desc 'convert molfile to 3d'
+        params do
+          requires :mol, type: String, desc: 'Molecule molfile'
+        end
+        post do
+          convert_structure(params[:mol])
+        rescue StandardError => e
+          # return { msg: { level: 'error', message: e } }
+          { molfile: params[:mol], msg: { level: 'error', message: e } }
+        end
+      end
+
       resource :options do
         before do
           error!(401) unless current_user.profile&.data['converter_admin'] == true

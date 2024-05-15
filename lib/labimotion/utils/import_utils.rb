@@ -24,7 +24,7 @@ module Labimotion
         value['el_id'] = molecule.id
         value['el_tip'] = "#{molecule.inchikey}@@#{molecule.cano_smiles}"
         value['el_label'] = molecule.iupac_name
-        value['el_svg'] = File.join('/images', 'molecules', molecule.molecule_svg_file)
+        value['el_svg'] = File.join('/images', 'molecules', molecule&.molecule_svg_file) if molecule&.molecule_svg_file.present?
         value['el_inchikey'] = molecule.inchikey
         value['el_smiles'] = molecule.cano_smiles
         value['el_type'] = 'molecule' if value['el_type'].nil?
@@ -45,6 +45,21 @@ module Labimotion
         value['el_tip'] = sample.short_label
         value['el_label'] = sample.short_label
         value['el_svg'] = sample.get_svg_path
+        value
+      rescue StandardError => e
+        Labimotion.log_exception(e)
+        value
+      end
+
+      def proc_assign_reaction(value, reaction)
+        return {} if reaction.nil?
+
+        value = {} if value.nil? || value.is_a?(String)
+        value['el_id'] = reaction.id
+        value['el_type'] = 'reaction' if value['el_type'].nil?
+        value['el_tip'] = reaction.short_label
+        value['el_label'] = reaction.short_label
+        value['el_svg'] = reaction.reaction_svg_file
         value
       rescue StandardError => e
         Labimotion.log_exception(e)
@@ -136,6 +151,22 @@ module Labimotion
       end
     end
 
+    def self.proc_reaction(layer, key, data, instances, properties)
+      fields = layer[Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::SYS_REACTION }
+      fields.each do |field|
+        idx = properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].index(field)
+        id = field["value"] && field["value"]["el_id"] unless idx.nil?
+        reaction = instances.fetch(Labimotion::Prop::REACTION, nil)&.fetch(id, nil)
+        val = properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']
+        val = proc_assign_reaction(val, reaction)
+        properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value'] = val
+      end
+      properties
+    rescue StandardError => e
+      Labimotion.log_exception(e)
+      properties
+    end
+
     def self.proc_sample(layer, key, data, instances, properties)
       fields = layer[Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::DRAG_SAMPLE }
       fields.each do |field|
@@ -149,7 +180,7 @@ module Labimotion
       properties
     rescue StandardError => e
       Labimotion.log_exception(e)
-      raise
+      properties
     end
 
     def self.proc_element(layer, key, data, instances, properties, elements)
@@ -169,7 +200,7 @@ module Labimotion
       properties
     rescue StandardError => e
       Labimotion.log_exception(e)
-      raise
+      properties
     end
 
     def self.proc_upload(layer, key, data, instances, attachments, element)
@@ -221,7 +252,7 @@ module Labimotion
       properties
     rescue StandardError => e
       Labimotion.log_exception(e)
-      raise
+      properties
     end
 
 
@@ -237,7 +268,7 @@ module Labimotion
       properties
     rescue StandardError => e
       Labimotion.log_exception(e)
-      raise
+      properties
     end
 
     def self.properties_handler(data, instances, attachments, elmenet, elements)
@@ -246,6 +277,7 @@ module Labimotion
         layer = properties[Labimotion::Prop::LAYERS][key]
         properties = proc_molecule(layer, key, data, properties)
         properties = proc_upload(layer, key, data, instances, attachments, elmenet)
+        properties = proc_reaction(layer, key, data, instances, properties)
         properties = proc_sample(layer, key, data, instances, properties)
         properties = proc_element(layer, key, data, instances, properties, elements) # unless elements.nil?
         properties = proc_table(layer, key, data, instances, properties)
@@ -253,7 +285,7 @@ module Labimotion
       properties
     rescue StandardError => e
       Labimotion.log_exception(e)
-      raise
+      properties
     end
 
     def self.process_ai(data, instances)
@@ -272,7 +304,7 @@ module Labimotion
       end
     rescue StandardError => e
       Labimotion.log_exception(e)
-      raise
+      properties
     end
 
     def self.create_segment_klass(sk_obj, segment_klass, element_klass, current_user_id)
