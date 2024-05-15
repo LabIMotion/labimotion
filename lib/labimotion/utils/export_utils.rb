@@ -20,6 +20,8 @@ module Labimotion
         case name
         when Labimotion::FieldType::DRAG_ELEMENT
           Labimotion::Prop::L_ELEMENT
+        when Labimotion::FieldType::SYS_REACTION
+          Labimotion::Prop::REACTION
         when Labimotion::FieldType::DRAG_SAMPLE
           Labimotion::Prop::SAMPLE
         when Labimotion::FieldType::DRAG_MOLECULE
@@ -167,6 +169,7 @@ module Labimotion
       properties[Labimotion::Prop::LAYERS].keys.each do |key|
         properties = set_seg_prop(properties, uuids, key, Labimotion::FieldType::DRAG_ELEMENT)
         properties = set_seg_prop(properties, uuids, key, Labimotion::FieldType::DRAG_SAMPLE)
+        properties = set_seg_prop(properties, uuids, key, Labimotion::FieldType::SYS_REACTION)
       end
       segment['properties'] = properties
       segment
@@ -183,6 +186,7 @@ module Labimotion
         properties = set_prop(properties, uuids, key, Labimotion::FieldType::DRAG_ELEMENT, &fetch_one)
         properties = set_prop(properties, uuids, key, Labimotion::FieldType::DRAG_MOLECULE, &fetch_one)
         properties = set_prop(properties, uuids, key, Labimotion::FieldType::DRAG_SAMPLE, &fetch_one)
+        properties = set_prop(properties, uuids, key, Labimotion::FieldType::SYS_REACTION, &fetch_one)
         properties, attachments = set_upload(instance, properties, attachments, uuids, key, Labimotion::FieldType::UPLOAD, &fetch_one)
         properties = set_table(properties, uuids, key, Labimotion::FieldType::TABLE, &fetch_one)
       end

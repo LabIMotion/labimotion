@@ -97,7 +97,10 @@ module Labimotion
           type = "#{field['type']}-#{field['option_layers']}" if field['type'] == Labimotion::FieldType::SELECT || field['type'] == Labimotion::FieldType::SYSTEM_DEFINED
 
           show_value = field['value'] =~ /\A\d+,\d+\z/ ? field['value']&.gsub(',', '.') : field['value']
-          sheet.add_row([' ', field['label'], nil, field['value_system'], field['field'], type, from_device, field['dkey'], nil].freeze)
+          ols_short_form = (field['ontology'] && field['ontology']['short_form']) || ''
+          ols_label = (field['ontology'] && field['ontology']['label']) || ''
+          ols_iri = (field['ontology'] && field['ontology']['iri']) || ''
+          sheet.add_row([' ', field['label'], nil, field['value_system'], field['field'], type, from_device, field['dkey'], nil, ols_short_form, ols_label, ols_iri].freeze)
 
           case field['type']
           when Labimotion::FieldType::SELECT
@@ -166,7 +169,7 @@ module Labimotion
     end
 
     def header
-      ['Layer Label', 'Field Label', 'Value', 'Unit', 'Name', 'Type', 'Source?', 'Source identifier', 'Source data'].freeze
+      ['Layer Label', 'Field Label', 'Value', 'Unit', 'Name', 'Type', 'Source?', 'Source identifier', 'Source data', 'Ontology', 'Ontology Label', 'iri'].freeze
     end
 
     def read

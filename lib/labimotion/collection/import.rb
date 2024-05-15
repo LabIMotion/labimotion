@@ -47,8 +47,12 @@ module Labimotion
       begin
         data.fetch('Labimotion::Dataset', {}).each do |uuid, fields|
           klass_id = fields['dataset_klass_id']
-          dk_obj = data.fetch('Labimotion::DatasetKlass', {})[klass_id]
-          dk_id = dk_obj['identifier']
+          next if data.fetch('Labimotion::DatasetKlass', {}).empty?
+
+          dk_obj = data.fetch('Labimotion::DatasetKlass', {}) && data.fetch('Labimotion::DatasetKlass', {})[klass_id]
+          next if dk_obj.nil?
+
+          dk_id = dk_obj && dk_obj['identifier']
           element_uuid = fields.fetch('element_id')
           element_type = fields.fetch('element_type')
           element = instances.fetch(element_type).fetch(element_uuid)
@@ -78,7 +82,7 @@ module Labimotion
         end
       rescue StandardError => e
         Labimotion.log_exception(e)
-        raise
+        # raise
       end
     end
 

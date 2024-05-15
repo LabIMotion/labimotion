@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'grape'
+require 'labimotion/conf'
 require 'labimotion/utils/utils'
 # require 'labimotion/models/element_klass'
 module Labimotion
@@ -33,7 +34,7 @@ module Labimotion
       new_klass = Labimotion::ElementKlass.create!(attributes)
       new_klass.reload
       new_klass.create_klasses_revision(current_user)
-      klass_names_file = Rails.root.join('app/packs/klasses.json')
+      klass_names_file = Labimotion::KLASSES_JSON # Rails.root.join('app/packs/klasses.json')
       klasses = Labimotion::ElementKlass.where(is_active: true)&.pluck(:name) || []
       File.write(klass_names_file, klasses)
       klasses
@@ -95,6 +96,7 @@ module Labimotion
       element.properties = update_sample_association(params[:properties], current_user, element)
       element.container = update_datamodel(params[:container], current_user)
       element.save!
+      update_element_labels(element, params[:user_labels], current_user.id)
       element.save_segments(segments: params[:segments], current_user_id: current_user.id)
       element
     rescue StandardError => e
@@ -108,6 +110,9 @@ module Labimotion
       properties = update_sample_association(params[:properties], current_user, element)
       params.delete(:container)
       params.delete(:properties)
+      update_element_labels(element, params[:user_labels], current_user.id)
+      params.delete(:user_labels)
+
       attributes = declared(params.except(:segments), include_missing: false)
       properties['pkg'] = Labimotion::Utils.pkg(properties['pkg'])
       if element.klass_uuid != properties['klass_uuid'] || element.properties != properties || element.name != params[:name]
@@ -288,6 +293,7 @@ module Labimotion
       scope = scope.elements_created_time_to(Time.at(to) + 1.day) if to && by_created_at
       scope = scope.elements_updated_time_from(Time.at(from)) if from && !by_created_at
       scope = scope.elements_updated_time_to(Time.at(to) + 1.day) if to && !by_created_at
+      scope = scope.by_user_label(params[:user_label]) if params[:user_label]
       scope
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
@@ -315,7 +321,7 @@ module Labimotion
           return { status: 'success', message: "The element: #{attributes['name']} has been created using version: #{attributes['version']}!" }
         end
       end
-      
+
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
       return { status: 'error', message: e.message }

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'labimotion/utils/utils'
+require 'labimotion/libs/attachment_handler'
 
 module Labimotion
   # Segmentable concern
@@ -29,7 +30,8 @@ module Labimotion
 
               att = Attachment.find_by(id: aid)
               att = Attachment.find_by(identifier: uid) if att.nil?
-              copied_att = att&.copy(attachable_type: Labimotion::Prop::SEGMENTPROPS, attachable_id: segment.id, transferred: true)
+              copied_att = Labimotion::AttachmentHandler.copy(att, segment.id, Labimotion::Prop::SEGMENTPROPS, args[:current_user_id])
+
               if copied_att.nil?
                 properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['files'].delete_at(fdx)
               else

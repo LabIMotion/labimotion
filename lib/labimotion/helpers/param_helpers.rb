@@ -22,7 +22,7 @@ module Labimotion
         optional :sync_time, type: DateTime, desc: 'Klass sync_time'
         optional :version, type: String, desc: 'Klass version'
       end
-      
+
       params :create_element_klass_params do
         requires :name, type: String, desc: 'Element Klass Name'
         requires :label, type: String, desc: 'Element Klass Label'
@@ -40,7 +40,7 @@ module Labimotion
         optional :desc, type: String, desc: 'Element Klass Desc'
         optional :place, type: String, desc: 'Element Klass Place'
       end
-      
+
       ## Element Params
       params :create_element_params do
         requires :element_klass, type: Hash
@@ -49,18 +49,20 @@ module Labimotion
         optional :properties_release, type: Hash
         optional :collection_id, type: Integer
         requires :container, type: Hash
+        optional :user_labels, type: Array
         optional :segments, type: Array, desc: 'Segments'
       end
-      
+
       params :update_element_params do
         requires :id, type: Integer, desc: 'element id'
         optional :name, type: String
         requires :properties, type: Hash
         optional :properties_release, type: Hash
         requires :container, type: Hash
+        optional :user_labels, type: Array
         optional :segments, type: Array, desc: 'Segments'
       end
-      
+
       ## Segment Klass Params
       params :upload_segment_klass_params do
         requires :label, type: String, desc: 'Klass label'

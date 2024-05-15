@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require 'grape'
+require 'labimotion/conf'
 require 'labimotion/utils/utils'
 # Helper for associated sample
 module Labimotion
@@ -23,7 +24,7 @@ module Labimotion
     def deactivate_klass(params)
       klz = fetch_klass(params[:klass], params[:id])
       klz&.update!(is_active: params[:is_active])
-      generate_klass_file unless klz.class.name != 'ElementKlass'
+      generate_klass_file unless klz.class.name != 'Labimotion::ElementKlass'
       klz
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
@@ -34,7 +35,7 @@ module Labimotion
       authenticate_admin!(params[:klass].gsub(/(Klass)/, 's').downcase)
       klz = fetch_klass(params[:klass], params[:id])
       klz&.destroy!
-      generate_klass_file unless klz.class.name != 'ElementKlass'
+      generate_klass_file unless klz.class.name != 'Labimotion::ElementKlass'
       status 201
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
@@ -97,7 +98,7 @@ module Labimotion
 
     ###############
     def generate_klass_file
-      klass_names_file = Rails.root.join('app/packs/klasses.json')
+      klass_names_file = Labimotion::KLASSES_JSON # Rails.root.join('app/packs/klasses.json')
       klasses = Labimotion::ElementKlass.where(is_active: true)&.pluck(:name) || []
       File.write(klass_names_file, klasses)
     rescue StandardError => e

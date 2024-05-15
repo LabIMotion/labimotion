@@ -107,9 +107,9 @@ module Labimotion
       attributes['updated_by'] = current_user.id
       attributes['sync_by'] = current_user.id
       attributes['sync_time'] = DateTime.now
-      attr_klass = response.dig('element_klass', {})        # response['element_klass']
+      attr_klass = response['element_klass']    ## response.dig('element_klass', {})        # response['element_klass']
       validate_klass(attributes, attr_klass)
-      
+
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
       raise e

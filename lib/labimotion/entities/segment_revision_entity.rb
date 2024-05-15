@@ -22,7 +22,7 @@ module Labimotion
 
           object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_label'] = el.short_label if field['type'] == Labimotion::FieldType::DRAG_SAMPLE
           object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_tip'] = el.short_label if field['type'] == Labimotion::FieldType::DRAG_SAMPLE
-          object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_svg'] = field['type'] == Labimotion::FieldType::DRAG_SAMPLE ? el.get_svg_path : File.join('/images', 'molecules', el.molecule_svg_file)
+          object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value']['el_svg'] = field['type'] == Labimotion::FieldType::DRAG_SAMPLE ? el.get_svg_path : File.join('/images', 'molecules', el&.molecule_svg_file || 'nosvg')
         end
 
         field_tables = object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::TABLE }
@@ -40,7 +40,7 @@ module Labimotion
               find_mol = Molecule.find_by(id: sub_value[col_id]['value']['el_id'])
               next unless find_mol.present?
 
-              sub_value[col_id]['value']['el_svg'] = File.join('/images', 'molecules', find_mol.molecule_svg_file)
+              sub_value[col_id]['value']['el_svg'] = File.join('/images', 'molecules', find_mol.molecule_svg_file) if find_mol&.molecule_svg_file&.present?
               sub_value[col_id]['value']['el_inchikey'] = find_mol.inchikey
               sub_value[col_id]['value']['el_smiles'] = find_mol.cano_smiles
               sub_value[col_id]['value']['el_iupac'] = find_mol.iupac_name
