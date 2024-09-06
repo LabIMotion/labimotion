@@ -125,7 +125,7 @@ module Labimotion
 
         name = response&.headers && response&.headers['content-disposition']&.split('=')&.last
         filename = oat.filename
-        name = "#{File.basename(filename, '.*')}.zip" if name.nil?
+        name = "#{File.basename(filename, '.*')}.zip"
 
         att = Attachment.new(
           filename: name,
@@ -172,7 +172,7 @@ module Labimotion
           Labimotion::ConState::ERROR
         end
       rescue StandardError => e
-        Labimotion::Converter.logger.error ["process fail: #{id}", e.message, *e.backtrace].join($INPUT_RECORD_SEPARATOR)
+        Labimotion::Converter.logger.error ["process fail: [#{data[:a]&.id}]", e.message, *e.backtrace].join($INPUT_RECORD_SEPARATOR)
         Labimotion::ConState::ERROR
       ensure
         FileUtils.rm_f(ofile)
@@ -232,10 +232,12 @@ module Labimotion
       new_prop = dataset.properties
       dsr.each do |ds|
         layer = layers[ds[:layer]]
-        next if layer.nil? || layer[Labimotion::Prop::FIELDS].nil?
+        next if layer.blank? || layer[Labimotion::Prop::FIELDS].blank?
 
         fields = layer[Labimotion::Prop::FIELDS].select{ |f| f['field'] == ds[:field] }
         fi = fields&.first
+        next if fi.blank?
+
         idx = layer[Labimotion::Prop::FIELDS].find_index(fi)
         fi['value'] = ds[:value]
         fi['device'] = ds[:device] || ds[:value]
