@@ -1,8 +1,8 @@
 # In your_gem_name.rb or main Ruby file
 module Labimotion
-
   autoload :CONF, 'labimotion/conf'
   autoload :VERSION, 'labimotion/version'
+  autoload :Constants, 'labimotion/constants'
 
   def self.logger
     @@labimotion_logger ||= Logger.new(Rails.root.join('log/labimotion.log')) # rubocop:disable Style/ClassVars
@@ -13,15 +13,19 @@ module Labimotion
     Labimotion.logger.error(exception.backtrace.join("\n"))
   end
 
+  autoload :MapperUtils, 'labimotion/utils/mapper_utils'
   autoload :Utils, 'labimotion/utils/utils'
 
   ######## APIs
+  autoload :LabimotionAPI, 'labimotion/apis/labimotion_api'
   autoload :GenericKlassAPI, 'labimotion/apis/generic_klass_api'
   autoload :GenericElementAPI, 'labimotion/apis/generic_element_api'
   autoload :GenericDatasetAPI, 'labimotion/apis/generic_dataset_api'
   autoload :SegmentAPI, 'labimotion/apis/segment_api'
   autoload :LabimotionHubAPI, 'labimotion/apis/labimotion_hub_api'
   autoload :ConverterAPI, 'labimotion/apis/converter_api'
+  autoload :StandardLayerAPI, 'labimotion/apis/standard_layer_api'
+  autoload :VocabularyAPI, 'labimotion/apis/vocabulary_api'
 
   ######## Entities
   autoload :PropertiesEntity, 'labimotion/entities/properties_entity'
@@ -43,6 +47,7 @@ module Labimotion
   autoload :ElementRevisionEntity, 'labimotion/entities/element_revision_entity'
   autoload :SegmentRevisionEntity, 'labimotion/entities/segment_revision_entity'
   ## autoload :DatasetRevisionEntity, 'labimotion/entities/dataset_revision_entity'
+  autoload :VocabularyEntity, 'labimotion/entities/vocabulary_entity'
 
   ######## Helpers
   autoload :GenericHelpers, 'labimotion/helpers/generic_helpers'
@@ -54,9 +59,11 @@ module Labimotion
   autoload :ConverterHelpers, 'labimotion/helpers/converter_helpers'
   autoload :SampleAssociationHelpers, 'labimotion/helpers/sample_association_helpers'
   autoload :RepositoryHelpers, 'labimotion/helpers/repository_helpers'
+  autoload :VocabularyHelpers, 'labimotion/helpers/vocabulary_helpers'
 
   ######## Libs
   autoload :Converter, 'labimotion/libs/converter'
+  autoload :DatasetBuilder, 'labimotion/libs/dataset_builder'
   autoload :NmrMapper, 'labimotion/libs/nmr_mapper'
   autoload :NmrMapperRepo, 'labimotion/libs/nmr_mapper_repo' ## for Chemotion Repository
   autoload :TemplateHub, 'labimotion/libs/template_hub'
@@ -64,6 +71,7 @@ module Labimotion
   autoload :SampleAssociation, 'labimotion/libs/sample_association'
   autoload :PropertiesHandler, 'labimotion/libs/properties_handler'
   autoload :AttachmentHandler, 'labimotion/libs/attachment_handler'
+  autoload :VocabularyHandler, 'labimotion/libs/vocabulary_handler'
 
   ######## Utils
   autoload :Prop, 'labimotion/utils/prop'
@@ -84,6 +92,7 @@ module Labimotion
   autoload :ElementKlass, 'labimotion/models/element_klass'
   autoload :SegmentKlass, 'labimotion/models/segment_klass'
   autoload :DatasetKlass, 'labimotion/models/dataset_klass'
+  autoload :Vocabulary, 'labimotion/models/vocabulary'
 
   autoload :ElementsRevision, 'labimotion/models/elements_revision'
   autoload :SegmentsRevision, 'labimotion/models/segments_revision'
@@ -97,6 +106,9 @@ module Labimotion
   autoload :ElementsElement, 'labimotion/models/elements_element'
   autoload :CollectionsElement, 'labimotion/models/collections_element'
 
+  autoload :StdLayer, 'labimotion/models/std_layer'
+  autoload :StdLayersRevision, 'labimotion/models/std_layers_revision'
+
   ######## Models/Concerns
   autoload :GenericKlassRevisions, 'labimotion/models/concerns/generic_klass_revisions'
   autoload :GenericRevisions, 'labimotion/models/concerns/generic_revisions'
@@ -104,6 +116,4 @@ module Labimotion
   autoload :Datasetable, 'labimotion/models/concerns/datasetable'
   autoload :AttachmentConverter, 'labimotion/models/concerns/attachment_converter.rb'
   autoload :LinkedProperties, 'labimotion/models/concerns/linked_properties'
-
-
 end

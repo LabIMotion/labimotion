@@ -28,7 +28,7 @@ module Labimotion
       dsr = []
       ols = nil
       Zip::File.open(att.attachment_attacher.file.url) do |zip_file|
-        res = Labimotion::Converter.collect_metadata(zip_file) if att.filename.split('.')&.last == 'zip'
+        res = Labimotion::Converter.collect_metadata(zip_file, current_user) if att.filename.split('.')&.last == 'zip'
         ols = res[:o] unless res&.dig(:o).nil?
         dsr.push(res[:d]) unless res&.dig(:d).nil?
       end
@@ -92,7 +92,7 @@ module Labimotion
       { a: oa, f: folder }
     end
 
-    def self.collect_metadata(zip_file) # rubocop: disable Metrics/PerceivedComplexity
+    def self.collect_metadata(zip_file, current_user = {}) # rubocop: disable Metrics/PerceivedComplexity
       dsr = []
       ols = nil
       zip_file.each do |entry|
@@ -114,7 +114,7 @@ module Labimotion
       { d: dsr, o: ols }
     end
 
-    def self.handle_response(oat, response) # rubocop: disable Metrics/PerceivedComplexity
+    def self.handle_response(oat, response, current_user = {}) # rubocop: disable Metrics/PerceivedComplexity
       dsr = []
       ols = nil
 
@@ -123,10 +123,8 @@ module Labimotion
         tmp_file.write(response.parsed_response)
         tmp_file.rewind
 
-        name = response&.headers && response&.headers['content-disposition']&.split('=')&.last
         filename = oat.filename
         name = "#{File.basename(filename, '.*')}.zip"
-
         att = Attachment.new(
           filename: name,
           file_path: tmp_file.path,
@@ -140,7 +138,7 @@ module Labimotion
 
         att.save! if att.valid?
 
-        process_ds(att.id)
+        process_ds(att.id, current_user)
       rescue StandardError => e
         raise e
       ensure
@@ -148,7 +146,7 @@ module Labimotion
       end
     end
 
-    def self.process(data)
+    def self.process(data, current_user = {}) # rubocop: disable Metrics/PerceivedComplexity
       return data[:a].con_state if data[:a]&.attachable_type != 'Container'
       response = nil
       begin
@@ -165,25 +163,25 @@ module Labimotion
           )
         end
         if response.ok?
-          Labimotion::Converter.handle_response(data[:a], response)
+          Labimotion::Converter.handle_response(data[:a], response, current_user)
           Labimotion::ConState::PROCESSED
         else
           Labimotion::Converter.logger.error ["Converter Response Error: id: [#{data[:a]&.id}], filename: [#{data[:a]&.filename}], response: #{response}"].join($INPUT_RECORD_SEPARATOR)
           Labimotion::ConState::ERROR
         end
       rescue StandardError => e
-        Labimotion::Converter.logger.error ["process fail: [#{data[:a]&.id}]", e.message, *e.backtrace].join($INPUT_RECORD_SEPARATOR)
+        Labimotion::Converter.logger.error ["process fail: #{data[:a]&.id}", e.message, *e.backtrace].join($INPUT_RECORD_SEPARATOR)
         Labimotion::ConState::ERROR
       ensure
         FileUtils.rm_f(ofile)
       end
     end
 
-    def self.jcamp_converter(id)
+    def self.jcamp_converter(id, current_user = {})
       data = Labimotion::Converter.vor_conv(id)
       return if data.nil?
 
-      Labimotion::Converter.process(data)
+      Labimotion::Converter.process(data, current_user)
     rescue StandardError => e
       Labimotion::Converter.logger.error ["jcamp_converter fail: #{id}", e.message, *e.backtrace].join($INPUT_RECORD_SEPARATOR)
       Labimotion::ConState::ERROR
@@ -243,27 +241,8 @@ module Labimotion
         fi['device'] = ds[:device] || ds[:value]
         new_prop[Labimotion::Prop::LAYERS][ds[:layer]][Labimotion::Prop::FIELDS][idx] = fi
       end
-      new_prop.dig(Labimotion::Prop::LAYERS, 'general', Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
-        if fi['field'] == 'creator' && current_user.present?
-          fi['value'] = current_user.name
-          fi['system'] = current_user.name
-          new_prop[Labimotion::Prop::LAYERS]['general'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-      end
       element = Container.find(dataset.element_id)&.root_element
-      element.present? && element&.class&.name == 'Sample' && new_prop.dig(Labimotion::Prop::LAYERS, 'sample_details', Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
-        if fi['field'] == 'id'
-          fi['value'] = element.id
-          fi['system'] = element.id
-          new_prop[Labimotion::Prop::LAYERS]['sample_details'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-
-        if fi['field'] == 'label'
-          fi['value'] = element.short_label
-          fi['system'] = element.short_label
-          new_prop[Labimotion::Prop::LAYERS]['sample_details'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-      end
+      new_prop = Labimotion::VocabularyHandler.update_vocabularies(new_prop, current_user, element)
       dataset.properties = new_prop
       dataset.save!
     end
@@ -325,13 +304,13 @@ module Labimotion
       res
     end
 
-    def self.metadata(id)
+    def self.metadata(id, current_user)
       att = Attachment.find(id)
       return if att.nil? || att.attachable_id.nil? || att.attachable_type != Labimotion::Prop::CONTAINER
 
       ds = Labimotion::Dataset.find_by(element_type: Labimotion::Prop::CONTAINER, element_id: att.attachable_id)
       att.update_column(:con_state, Labimotion::ConState::COMPLETED) if ds.present?
-      process_ds(att.id) if ds.nil?
+      process_ds(att.id, current_user) if ds.nil?
     end
   end
 end

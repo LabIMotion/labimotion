@@ -39,6 +39,7 @@ GEM
     childprocess (4.1.0)
     concurrent-ruby (1.2.2)
     crass (1.0.6)
+    diff-lcs (1.5.1)
     erubi (1.12.0)
     i18n (1.13.0)
       concurrent-ruby (~> 1.0)
@@ -76,6 +77,19 @@ GEM
     rake (13.0.6)
     regexp_parser (2.8.0)
     rexml (3.2.5)
+    rspec (3.13.0)
+      rspec-core (~> 3.13.0)
+      rspec-expectations (~> 3.13.0)
+      rspec-mocks (~> 3.13.0)
+    rspec-core (3.13.0)
+      rspec-support (~> 3.13.0)
+    rspec-expectations (3.13.1)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-mocks (3.13.1)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-support (3.13.1)
     rubyzip (2.3.2)
     selenium-webdriver (4.1.0)
       childprocess (>= 0.5, < 5.0)
@@ -96,7 +110,7 @@ GEM
       selenium-webdriver (~> 4.0)
     xpath (3.2.0)
       nokogiri (~> 1.8)
-    zeitwerk (2.6.8)
+    zeitwerk (2.6.18)
 
 PLATFORMS
   ruby
@@ -106,6 +120,7 @@ DEPENDENCIES
   byebug
   capybara (>= 3.26)
   rack-mini-profiler (~> 2.0)
+  rspec (~> 3.13)
   spring
   web-console (>= 4.2.0)
   webdrivers
@@ -114,4 +129,4 @@ RUBY VERSION
    ruby 2.7.8p225
 
 BUNDLED WITH
-   2.2.29
+   2.4.22

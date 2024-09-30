@@ -59,6 +59,8 @@ module Labimotion
         props['uuid'] = uuid
         props['klass'] = 'Segment'
         props = Labimotion::SampleAssociation.update_sample_association(props, args[:current_user_id])
+        current_user = User.find_by(id: args[:current_user_id])
+        props = Labimotion::VocabularyHandler.update_vocabularies(props, current_user, self)
         segment = Labimotion::Segment.where(element_type: self.class.name, element_id: self.id, segment_klass_id: seg['segment_klass_id']).order(id: :desc).first
         if segment.present? && (segment.klass_uuid != props['klass_uuid'] || segment.properties != props)
           segment.update!(properties_release: klass.properties_release, properties: props, uuid: uuid, klass_uuid: props['klass_uuid'])

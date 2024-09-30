@@ -42,6 +42,7 @@ module Labimotion
       props['identifier'] = klass.identifier if klass.identifier.present?
       props['uuid'] = uuid
       props['klass'] = 'Dataset'
+      props = Labimotion::VocabularyHandler.update_vocabularies(props, args[:current_user], args[:element])
 
       ds = Labimotion::Dataset.find_by(element_type: self.class.name, element_id: id)
       if ds.present? && (ds.klass_uuid != props['klass_uuid'] || ds.properties != props)

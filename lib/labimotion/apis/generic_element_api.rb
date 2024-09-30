@@ -12,6 +12,7 @@ module Labimotion
     helpers CollectionHelpers
     helpers UserLabelHelpers
     helpers Labimotion::SampleAssociationHelpers
+    helpers Labimotion::VocabularyHelpers
     helpers Labimotion::GenericHelpers
     helpers Labimotion::ElementHelpers
     helpers Labimotion::ParamHelpers

@@ -93,7 +93,8 @@ module Labimotion
       all_coll = Collection.get_all_collection_for_user(current_user.id)
       element.collections << all_coll
       element.save!
-      element.properties = update_sample_association(params[:properties], current_user, element)
+      _properties = update_sample_association(params[:properties], current_user, element)
+      element.properties = update_vocabularies(_properties, current_user, element)
       element.container = update_datamodel(params[:container], current_user)
       element.save!
       update_element_labels(element, params[:user_labels], current_user.id)
@@ -112,7 +113,6 @@ module Labimotion
       params.delete(:properties)
       update_element_labels(element, params[:user_labels], current_user.id)
       params.delete(:user_labels)
-
       attributes = declared(params.except(:segments), include_missing: false)
       properties['pkg'] = Labimotion::Utils.pkg(properties['pkg'])
       if element.klass_uuid != properties['klass_uuid'] || element.properties != properties || element.name != params[:name]
@@ -123,15 +123,17 @@ module Labimotion
         properties.delete('flow') unless properties['flow'].nil?
         properties.delete('flowObject') unless properties['flowObject'].nil?
         properties.delete('select_options') unless properties['select_options'].nil?
-
         attributes['properties'] = properties
         attributes['properties']['uuid'] = uuid
         attributes['uuid'] = uuid
         attributes['klass_uuid'] = properties['klass_uuid']
-
-        element.update(attributes)
+        element.update_columns(attributes)
       end
       element.save_segments(segments: params[:segments], current_user_id: current_user.id)
+      element.reload
+      element.properties = update_vocabularies(element.properties, current_user, element)
+      ## element.user_for_revision = current_user
+      element.save!
       element
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
@@ -321,7 +323,6 @@ module Labimotion
           return { status: 'success', message: "The element: #{attributes['name']} has been created using version: #{attributes['version']}!" }
         end
       end
-
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
       return { status: 'error', message: e.message }
@@ -351,7 +352,9 @@ module Labimotion
         _att
       end
       attachments
+    rescue StandardError => e
+      Labimotion.log_exception(e)
+      attachments
     end
-
   end
 end

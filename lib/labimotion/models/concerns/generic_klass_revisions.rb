@@ -42,6 +42,7 @@ module Labimotion
         released_by: released_by,
         uuid: uuid,
         version: version,
+        created_by: updated_by,
         properties_release: properties_release,
         released_at: released_at
       }

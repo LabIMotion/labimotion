@@ -78,6 +78,8 @@ module Labimotion
         field_samples = layer[Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::DRAG_SAMPLE }
         field_samples.each do |field|
           idx = properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].index(field)
+          return if field.is_a?(String) || properties.is_a?(String)
+
           sid = field.dig('value', 'el_id')
           next if sid.blank?
 
@@ -100,6 +102,8 @@ module Labimotion
         field_elements = layer[Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::DRAG_ELEMENT }
         field_elements.each do |field|
           idx = properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].index(field)
+          next if field['value'].is_a?(String)
+
           sid = field.dig('value', 'el_id')
           next if element.nil? || sid.blank? || sid == element.id
 

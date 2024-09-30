@@ -1,5 +1,44 @@
 # LabIMotion Changelog
 
+## [2.0.0]
+> 2025-03-25
+* Features and enhancements:
+  * Upgraded the main UI component, introducing a breaking change with react-bootstrap. Please note that this version is only compatible with ELN version using react-bootstrap v2.
+  * Added new units ([#43](https://github.com/LabIMotion/labimotion/issues/43)).
+  * Introduced a new form layout for **Designer**.
+  * Introduced a new field type, `Select (Multiple)`, for **Designers**; the multiple selections feature is now supported.
+  * Introduced the `Arrange Layers` and `Arrange Fields` feature for reordering the layers and fields.
+  * Expanded the `LabIMotion Vocabulary (Lab-Vocab)`, more vocabularies are added.
+  * Template version information is now available for **Users**.
+  * Introduced the `Quick Filter` feature for **Designers**.
+  * Set the first layer to be expanded by default for improved usability.
+  * Added a feature allowing **User** to collapse or expand all layers with a single click.
+  * Metadata Auto Mapper: Automatically prioritises the retrieval of parameters from Bruker's primary files.
+
+  For more details, see the [Discussion](https://github.com/LabIMotion/labimotion/discussions/39).
+
+  * LabIMotion Vocabulary (Lab-Vocab).
+    * [Concept of LabIMotion Vocabulary (Lab-Vocab)](https://doi.org/10.5281/zenodo.13881070)
+  * Standard Layer.
+  * User Interface Foundation.
+  * Extract "other solvent" for dataset.
+
+  For more details, see the [Discussion](https://github.com/LabIMotion/labimotion/discussions/37).
+
+* Bug fixes:
+  * Fixed an issue where the links for `Drag Element` and `Drag Sample` would vanish. ([#42](https://github.com/LabIMotion/labimotion/issues/42))
+  * Fixed an issue where the `Record Time` text would disappear. ([#40](https://github.com/LabIMotion/labimotion/issues/40))
+  * Fixed an issue where an unexpected page was dislayed when no dataset existed for the CV case.
+  * Fixed an issue where the selection was not working in the dataset after the library upgrade.
+  * Fixed an issue where the new selection list does not immediately reflect in the table after the library upgrade.
+  * Fixed a JavaScript warning related to the missing key prop for unique elements.
+
+* Chores:
+  * Updated library dependencies.
+
+#### Note: The planned 1.5.0 release was postponed due to dependencies in a consuming project. All updates from 1.5.0 are included in 2.0.0, along with additional features and a breaking change.
+
+
 ## [1.4.1]
 > 2024-10-24
 

@@ -6,7 +6,7 @@ require 'labimotion/libs/export_element'
 module Labimotion
   # Generic Element API
   class GenericKlassAPI < Grape::API
-    
+
     resource :generic_klass do
       namespace :download_klass do
         desc 'export klass'
@@ -28,7 +28,8 @@ module Labimotion
           Labimotion.log_exception(e, current_user)
           {}
         end
-      end      
+      end
+
     end
   end
 end

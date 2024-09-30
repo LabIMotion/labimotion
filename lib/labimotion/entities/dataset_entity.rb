@@ -3,7 +3,7 @@
 require 'labimotion/entities/application_entity'
 module Labimotion
   # Dataset entity
-  class DatasetEntity < ApplicationEntity
+  class DatasetEntity < PropertiesEntity
     expose :id, :dataset_klass_id, :properties, :properties_release, :element_id, :element_type, :klass_ols, :klass_label, :klass_uuid
     def klass_ols
       object&.dataset_klass&.ols_term_id

@@ -8,6 +8,8 @@ module Labimotion
       after_create :create_vault
       after_update :save_to_vault
       before_destroy :delete_attachments
+
+      ## attr_accessor :user_for_revision
     end
 
     def create_vault
@@ -19,6 +21,7 @@ module Labimotion
         uuid: uuid,
         klass_uuid: klass_uuid,
         properties: properties,
+        ## created_by: user_for_revision&.id,
         properties_release: properties_release
       }
       attributes["#{Labimotion::Utils.element_name_dc(self.class.name)}_id"] = id

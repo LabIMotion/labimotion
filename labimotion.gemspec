@@ -13,7 +13,7 @@ Gem::Specification.new do |spec|
     "bug_tracker_uri" => "https://github.com/LabIMotion/labimotion/discussions"
   }
   spec.license       = 'AGPL-3.0'
-  spec.files         = Dir['lib/**/*.rb', 'labimotion.rb']
+  spec.files         = Dir['lib/**/*.rb', 'labimotion.rb', 'lib/**/*.json']
   spec.require_paths = ['lib']
   spec.add_dependency "rails", "~> 6.1.7"
 end

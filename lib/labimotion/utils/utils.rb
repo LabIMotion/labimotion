@@ -80,6 +80,27 @@ module Labimotion
       current_version
     end
 
+    def self.find_field(properties, field_path, separator = '.')
+      return if properties.nil? || field_path.nil?
+
+      layer_name, field_name = field_path.split(separator)
+      fields = properties.dig(Labimotion::Prop::LAYERS, layer_name, Labimotion::Prop::FIELDS)
+      return unless fields
+
+      fields.find { |f| f['field'] == field_name }
+    end
+
+    def self.find_options_val(field, properties)
+      return if field.nil? || properties.nil? || field['option_layers'].nil? || field['value'].nil?
+
+      option_layers = properties.dig(Labimotion::Prop::SEL_OPTIONS, field['option_layers'])
+      options = option_layers && option_layers['options']
+      return if options.nil?
+
+      sel_option = options.find { |o| o['key'] == field['value'] }
+      sel_option && sel_option['label']
+    end
+
     def self.pkg(pkg)
       pkg = {} if pkg.nil?
       pkg['eln'] = Chemotion::Application.config.version

@@ -72,7 +72,7 @@ module Labimotion
       # el_attributes['properties_template'] = response['element_klass']['properties_release']
       # Labimotion::ElementKlass.create!(el_attributes)
       attributes['element_klass_id'] = element_klass.id
-      segment_klass = Labimotion::SegmentKlass.find_by(identifier: attributes['identifier'])
+      segment_klass = Labimotion::SegmentKlass.find_by(identifier: attributes['identifier']) if attributes['identifier'].present?
       if segment_klass.present?
         if segment_klass['uuid'] == attributes['uuid'] && segment_klass['version'] == attributes['version']
           return { status: 'success', message: "This segment: #{attributes['label']} has the latest version!" }

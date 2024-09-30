@@ -25,17 +25,18 @@ module Labimotion
       def exec_converter
         return if self.has_attribute?(:con_state) == false || self.con_state.nil? || self.con_state == Labimotion::ConState::NONE
 
-        return if attachable_id.nil? && self.con_state != Labimotion::ConState::WAIT
+        return if attachable_id.nil? && con_state != Labimotion::ConState::WAIT
 
+        current_user = User.find_by(id: created_by)
         case con_state
         when Labimotion::ConState::NMR
-          self.con_state = Labimotion::NmrMapper.process_ds(id)
+          self.con_state = Labimotion::NmrMapper.process_ds(id, current_user)
           update_column(:con_state, con_state)
         when Labimotion::ConState::WAIT
-          self.con_state = Labimotion::Converter.jcamp_converter(id)
+          self.con_state = Labimotion::Converter.jcamp_converter(id, current_user)
           update_column(:con_state, con_state)
         when Labimotion::ConState::CONVERTED
-          Labimotion::Converter.metadata(id)
+          Labimotion::Converter.metadata(id, current_user)
         end
       end
     end

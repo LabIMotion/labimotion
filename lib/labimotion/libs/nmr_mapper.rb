@@ -1,300 +1,258 @@
 # frozen_string_literal: true
 
+require 'labimotion/libs/dataset_builder'
 require 'labimotion/version'
+require 'labimotion/utils/mapper_utils'
 require 'labimotion/utils/utils'
 
 module Labimotion
   ## NmrMapper
   class NmrMapper
-    def self.process_ds(id, current_user = {})
-      att = Attachment.find_by(id: id, con_state: Labimotion::ConState::NMR)
-      return if att.nil?
+    # Constants specific to NMR mapping
+    module Constants
+      # Duplicate fields that need special handling
+      DUP_FIELDS = %w[time version].freeze
 
-      result = is_brucker_binary(id)
-      if result[:is_bagit] == true
+      # Field groups for different processing stages
+      FG_FINALIZE = %w[set.temperature general.date general.time software.Name software.Version].freeze
+      FG_SYSTEM = %w[general.creator sample_details.label sample_details.id].freeze
+
+      # Valid NMR nuclei types
+      OBSERVED = %w[1H 13C].freeze
+
+      # OLS terms for different NMR types
+      module OlsTerms
+        NMR_1H = 'CHMO:0000593'
+        NMR_13C = 'CHMO:0000595'
+      end
+    end
+
+    class << self
+      def process_ds(id, current_user = {})
+        att = find_attachment(id)
+        return Labimotion::ConState::NONE if att.nil?
+
+        result = process(att)
+        return Labimotion::ConState::NONE if result.nil?
+
+        handle_process_result(result, att, id, current_user)
+      end
+
+      def process(att)
+        config = Labimotion::MapperUtils.load_brucker_config
+        return if config.nil?
+
+        attacher = att&.attachment_attacher
+        extracted_data = Labimotion::MapperUtils.extract_data_from_zip(attacher&.file&.url, config['sourceMap'])
+        return if extracted_data.nil?
+
+        extracted_data[:parameters] = config['sourceMap']['parameters']
+        extracted_data
+      end
+
+      def generate_ds(_id, cid, data, current_user = {}, element = nil)
+        return if data.nil? || cid.nil?
+
+        obj = Labimotion::NmrMapper.build_ds(cid, data[:content])
+        return if obj.nil? || obj[:ols].nil?
+
+        Labimotion::NmrMapper.update_ds(cid, obj, current_user, element)
+      end
+
+      def update_ds(_cid, obj, current_user, element)
+        dataset = obj[:dataset]
+        dataset.properties = process_prop(obj, current_user, element)
+        dataset.save!
+      end
+
+      def build_ds(id, content)
+        ds = find_container(id)
+        return if ds.nil? || content.nil?
+
+        Labimotion::DatasetBuilder.build(ds, content)
+      end
+
+      private
+
+      def finalize_ds(new_prop)
+        Constants::FG_FINALIZE.each do |field_path|
+          field = Labimotion::Utils.find_field(new_prop, field_path)
+          next unless field
+
+          update_finalized_field(field)
+        end
+        new_prop
+      end
+
+      def sys_to_ds(new_prop, element, current_user)
+        Constants::FG_SYSTEM.each do |field_path|
+          field = Labimotion::Utils.find_field(new_prop, field_path)
+          next unless field
+
+          update_system_field(field, current_user, element)
+        end
+        new_prop
+      end
+
+      def params_to_ds(obj, new_prop)
+        metadata = obj[:metadata]
+        parameters = obj[:parameters]
+
+        parameters.each do |param_key, field_path|
+          next if skip_parameter?(metadata, param_key)
+
+          update_param_field(new_prop, field_path, param_key, metadata)
+        end
+        new_prop
+      end
+
+      def process_prop(obj, current_user, element)
+        new_prop = obj[:dataset].properties
+        new_prop
+          .then { |prop| params_to_ds(obj, prop) }
+          .then { |prop| sys_to_ds(prop, element, current_user) }
+          .then { |prop| finalize_ds(prop) }
+          .then { |prop| Labimotion::VocabularyHandler.update_vocabularies(prop, current_user, element) }
+      end
+
+      def find_attachment(id)
+        Attachment.find_by(id: id, con_state: Labimotion::ConState::NMR)
+      end
+
+      def handle_process_result(result, att, id, current_user)
+        if result[:is_bagit]
+          handle_bagit_result(att, id, current_user)
+        elsif invalid_metadata?(result)
+          Labimotion::ConState::NONE
+        else
+          handle_nmr_result(result, att, current_user)
+        end
+      end
+
+      def handle_bagit_result(att, id, current_user)
         att.update_column(:con_state, Labimotion::ConState::CONVERTED)
-        Labimotion::Converter.metadata(id)
-        Labimotion::ConState::COMPLETED
-      elsif result[:metadata] == nil
-        Labimotion::ConState::NONE
-      else
-        ds = Container.find_by(id: att.attachable_id)
-        return if ds.nil? || ds.parent&.container_type != 'analysis'
-
-        data = process(att, id, result[:metadata])
-        generate_ds(id, att.attachable_id, data, current_user)
+        Labimotion::Converter.metadata(id, current_user)
         Labimotion::ConState::COMPLETED
       end
-    end
 
-    def self.is_brucker_binary(id)
-      att = Attachment.find_by(id: id, con_state: Labimotion::ConState::NMR)
-      return if att.nil?
-
-      if att&.attachment_attacher&.file&.url
-        Zip::File.open(att.attachment_attacher.file.url) do |zip_file|
-          zip_file.each do |entry|
-            if entry.name.include?('/pdata/') && entry.name.include?('parm.txt')
-              metadata = entry.get_input_stream.read.force_encoding('UTF-8')
-              return { is_bagit: false, metadata: metadata }
-            elsif entry.name.include?('metadata/') && entry.name.include?('converter.json')
-              return { is_bagit: true, metadata: nil }
-            end
-          end
-        end
+      def invalid_metadata?(result)
+        result[:metadata].nil? ||
+          Constants::OBSERVED.exclude?(result[:metadata]['NUC1'])
       end
-      { is_bagit: false, metadata: nil }
-    end
 
-    def self.process(att, id, content)
-      return if att.nil? || content.nil?
+      def handle_nmr_result(result, att, current_user)
+        ds = find_container(att.attachable_id)
+        return Labimotion::ConState::NONE unless valid_container?(ds)
 
-      lines = content.split("\n").reject(&:empty?)
-      metadata = {}
-      lines.map do |ln|
-        arr = ln.split(/\s+/)
-        metadata[arr[0]] = arr[1..-1].join(' ') if arr.length > 1
+        prepare_mapper_result(ds, result, current_user)
+        Labimotion::ConState::COMPLETED
       end
-      ols = 'CHMO:0000593' if metadata['NUC1'] == '1H'
-      ols = 'CHMO:0000595' if metadata['NUC1'] == '13C'
 
-      { content: { metadata: metadata, ols: ols } }
-      # if content.present? && att.present?
-      #   Labimotion::NmrMapper.ts('write', att.attachable_id,
-      #                         content: { metadata: metadata, ols: ols })
-      # end
-    end
-
-    def self.fetch_content(id)
-      atts = Attachment.where(attachable_id: id)
-      return if atts.nil?
-
-      atts.each do |att|
-        content = Labimotion::NmrMapper.ts('read', att.id)
-        return content if content.present?
+      def find_container(cid)
+        Container.find_by(id: cid)
       end
-    end
 
-
-    def self.generate_ds(id, cid, data, current_user = {})
-      return if data.nil? || cid.nil?
-
-      obj = Labimotion::NmrMapper.build_ds(cid, data[:content])
-      return if obj.nil? || obj[:ols].nil?
-
-      Labimotion::NmrMapper.update_ds_1h(cid, obj, current_user) if obj[:ols] == 'CHMO:0000593'
-      Labimotion::NmrMapper.update_ds_1h(cid, obj, current_user) if obj[:ols] == 'CHMO:0000595'
-    end
-
-    def self.update_ds_13c(id, obj)
-      # dataset = obj[:dataset]
-      # metadata = obj[:metadata]
-      # new_prop = dataset.properties
-
-      # dataset.properties = new_prop
-      # dataset.save!
-    end
-
-    def self.set_data(prop, field, idx, layer_name, field_name, value)
-      return if field['field'] != field_name || value&.empty?
-
-      field['value'] = value
-      prop[Labimotion::Prop::LAYERS][layer_name][Labimotion::Prop::FIELDS][idx] = field
-      prop
-    end
-
-    def self.update_ds_1h(id, obj, current_user)
-      dataset = obj[:dataset]
-      metadata = obj[:metadata]
-      new_prop = dataset.properties
-      new_prop.dig(Labimotion::Prop::LAYERS, 'general', Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
-        #  new_prop = set_data(new_prop, fi, idx, 'general', 'title', metadata['NAME'])
-        if fi['field'] == 'title' && metadata['NAME'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['NAME']
-          fi['device'] = metadata['NAME']
-          fi['dkey'] = 'NAME'
-          new_prop[Labimotion::Prop::LAYERS]['general'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-
-        if fi['field'] == 'date' && metadata['Date_'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['Date_']
-          fi['device'] = metadata['Date_']
-          fi['dkey'] = 'Date_'
-          new_prop[Labimotion::Prop::LAYERS]['general'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-
-        if fi['field'] == 'time' && metadata['Time'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['Time']
-          fi['device'] = metadata['Time']
-          fi['dkey'] = 'Time'
-          new_prop[Labimotion::Prop::LAYERS]['general'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-
-        if fi['field'] == 'creator' && current_user.present?
-          ## fi['label'] = fi['label']
-          fi['value'] = current_user.name
-          new_prop[Labimotion::Prop::LAYERS]['general'][Labimotion::Prop::FIELDS][idx] = fi
-        end
+      def valid_container?(container)
+        container.present? &&
+          container.parent&.container_type == 'analysis' &&
+          container.root_element.present?
       end
-      element = Container.find(id)&.root_element
-      element.present? && element&.class&.name == 'Sample' && new_prop.dig(Labimotion::Prop::LAYERS, 'sample_details',
-                                                                          Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
-        if fi['field'] == 'label'
-          fi['value'] = element.short_label
-          new_prop[Labimotion::Prop::LAYERS]['sample_details'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-        if fi['field'] == 'id'
-          fi['value'] = element.id
-          new_prop[Labimotion::Prop::LAYERS]['sample_details'][Labimotion::Prop::FIELDS][idx] = fi
+
+      def prepare_mapper_result(container, result, current_user)
+        metadata = result[:metadata]
+        ols = determine_ols_term(metadata['NUC1'])
+
+        data = {
+          content: {
+            metadata: metadata,
+            ols: ols,
+            parameters: result[:parameters]
+          }
+        }
+
+        generate_ds(nil, container.id, data, current_user, container.root_element)
+      end
+
+      def determine_ols_term(nuc1)
+        case nuc1
+        when '1H' then Constants::OlsTerms::NMR_1H
+        when '13C' then Constants::OlsTerms::NMR_13C
         end
       end
 
-      new_prop.dig(Labimotion::Prop::LAYERS, 'instrument', Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
-        if fi['field'] == 'instrument' && metadata['INSTRUM'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['INSTRUM']
-          fi['device'] = metadata['INSTRUM']
-          fi['dkey'] = 'INSTRUM'
-          new_prop[Labimotion::Prop::LAYERS]['instrument'][Labimotion::Prop::FIELDS][idx] = fi
+      def skip_parameter?(metadata, param_key)
+        metadata[param_key.to_s].blank? &&
+          Constants::DUP_FIELDS.exclude?(param_key.to_s.downcase)
+      end
+
+      def update_param_field(properties, field_path, param_key, metadata)
+        field = Labimotion::Utils.find_field(properties, field_path)
+        return unless field
+
+        update_field_value(field, param_key, metadata)
+        update_field_extend(field, param_key, metadata)
+      end
+
+      def update_duplicate_field(field_name, metadata)
+        case field_name
+        when 'time' then metadata['DATE']
+        when 'Version' then metadata['TITLE']
         end
       end
 
-      new_prop.dig(Labimotion::Prop::LAYERS, 'equipment', Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
-        if fi['field'] == 'probehead' && metadata['PROBHD'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['PROBHD']
-          fi['device'] = metadata['PROBHD']
-          fi['dkey'] = 'PROBHD'
-          new_prop[Labimotion::Prop::LAYERS]['equipment'][Labimotion::Prop::FIELDS][idx] = fi
+      def update_field_value(field, param_key, metadata)
+        field['value'] = format_field_value(field, param_key, metadata)
+      rescue StandardError => e
+        Rails.logger.error "Error converting value for #{param_key}: #{e.message}"
+        field['value'] = ''
+      end
+
+      def format_field_value(field, param_key, metadata)
+        if field['type'] == 'integer'
+          Integer(metadata[param_key.to_s])
+        elsif Constants::DUP_FIELDS.include?(param_key.to_s.downcase)
+          update_duplicate_field(field['field'], metadata)
+        else
+          metadata[param_key.to_s]
         end
       end
 
-      new_prop.dig(Labimotion::Prop::LAYERS, 'sample_preparation', Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
-        if fi['field'] == 'solvent' && metadata['SOLVENT'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['SOLVENT']
-          fi['device'] = metadata['SOLVENT']
-          fi['dkey'] = 'SOLVENT'
-          fi['value'] = 'chloroform-D1 (CDCl3)' if metadata['SOLVENT'] == 'CDCl3'
-          new_prop[Labimotion::Prop::LAYERS]['sample_preparation'][Labimotion::Prop::FIELDS][idx] = fi
+      def update_finalized_field(field)
+        case field['field']
+        when 'temperature'
+          field['value_system'] = 'K'
+        when 'date', 'time'
+          field['value'] = Labimotion::MapperUtils.format_timestamp(field['value'], field['field'])
+        when 'Name'
+          field['value'] = 'TopSpin' if field['value'].to_s.include?('TopSpin')
+        when 'Version'
+          field['value'] = field['value'].to_s.split('TopSpin').last.strip if field['value'].to_s.include?('TopSpin')
         end
       end
 
-      new_prop.dig(Labimotion::Prop::LAYERS, 'set', Labimotion::Prop::FIELDS)&.each_with_index do |fi, idx|
-        if fi['field'] == 'temperature' && metadata['TE'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['TE'].split(/\s+/).first
-          fi['device'] = metadata['TE']
-          fi['dkey'] = 'TE'
-          fi['value_system'] = metadata['TE'].split(/\s+/).last
-          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-        if fi['field'] == 'ns' && metadata['NS'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['NS']
-          fi['device'] = metadata['NS']
-          fi['dkey'] = 'NS'
-          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-        if fi['field'] == 'PULPROG' && metadata['PULPROG'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['PULPROG']
-          fi['device'] = metadata['PULPROG']
-          fi['dkey'] = 'PULPROG'
-          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-        if fi['field'] == 'td' && metadata['TD'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['TD']
-          fi['device'] = metadata['TD']
-          fi['dkey'] = 'TD'
-          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-        if fi['field'] == 'done' && metadata['D1'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['D1']
-          fi['device'] = metadata['D1']
-          fi['dkey'] = 'D1'
-          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-        if fi['field'] == 'sf' && metadata['SF'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['SF']
-          fi['device'] = metadata['SF']
-          fi['dkey'] = 'SF'
-          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-        if fi['field'] == 'sfoone' && metadata['SFO1'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['SFO1']
-          fi['device'] = metadata['SFO1']
-          fi['dkey'] = 'SFO1'
-          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-        if fi['field'] == 'sfotwo' && metadata['SFO2'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['SFO2']
-          fi['device'] = metadata['SFO2']
-          fi['dkey'] = 'SFO2'
-          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-        if fi['field'] == 'nucone' && metadata['NUC1'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['NUC1']
-          fi['device'] = metadata['NUC1']
-          fi['dkey'] = 'NUC1'
-          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
-        end
-        if fi['field'] == 'nuctwo' && metadata['NUC2'].present?
-          ## fi['label'] = fi['label']
-          fi['value'] = metadata['NUC2']
-          fi['device'] = metadata['NUC2']
-          fi['dkey'] = 'NUC2'
-          new_prop[Labimotion::Prop::LAYERS]['set'][Labimotion::Prop::FIELDS][idx] = fi
+      def update_system_field(field, current_user, element)
+        field['value'] = determine_field_value(field['field'], current_user, element)
+      end
+
+      def determine_field_value(field_name, current_user, element)
+        case field_name
+        when 'creator'
+          current_user&.name if current_user.present?
+        when 'label', 'id'
+          get_sample_value(field_name, element)
         end
       end
-      dataset.properties = new_prop
-      dataset.save!
-    end
 
-    def self.ts(method, identifier, params = nil)
-      Rails.cache.send(method, "#{Labimotion::NmrMapper.new.class.name}#{identifier}", params)
-    end
+      def get_sample_value(field_name, element)
+        return unless element.present? && element.is_a?(Sample)
 
-    def self.clean(id)
-      Labimotion::NmrMapper.ts('delete', id)
-    end
+        field_name == 'label' ? element.short_label : element.id
+      end
 
-    def self.build_ds(id, content)
-      ds = Container.find_by(id: id)
-      return if ds.nil? || content.nil?
-
-      ols = content[:ols]
-      metadata = content[:metadata]
-
-      return if ols.nil? || metadata.nil?
-
-      klass = Labimotion::DatasetKlass.find_by(ols_term_id: ols)
-      return if klass.nil?
-
-      uuid = SecureRandom.uuid
-      props = klass.properties_release
-      props['uuid'] = uuid
-      props['pkg'] = Labimotion::Utils.pkg(props['pkg'])
-      props['klass'] = 'Dataset'
-      dataset = Labimotion::Dataset.create!(
-        uuid: uuid,
-        dataset_klass_id: klass.id,
-        element_type: 'Container',
-        element_id: ds.id,
-        properties: props,
-        properties_release: klass.properties_release,
-        klass_uuid: klass.uuid,
-      )
-      { dataset: dataset, metadata: metadata, ols: ols }
+      def update_field_extend(field, param_key, metadata)
+        field['device'] = metadata[param_key.to_s]
+        field['dkey'] = param_key.to_s
+      end
     end
   end
 end

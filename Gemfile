@@ -4,6 +4,7 @@ ruby '2.7.8'
 
 group :development, :test do
   gem 'byebug', platforms: %i[mri mingw x64_mingw]
+  gem 'rspec', '~> 3.13'
 end
 
 group :development do

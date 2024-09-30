@@ -20,6 +20,7 @@ module Labimotion
       expose! :thumb_svg
       expose! :type
       expose! :uuid
+      expose! :user_labels
     end
 
     with_options(anonymize_below: 10) do

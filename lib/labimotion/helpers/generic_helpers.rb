@@ -9,7 +9,12 @@ module Labimotion
     extend Grape::API::Helpers
 
     def authenticate_admin!(type)
-      error!('401 Unauthorized', 401) unless current_user.generic_admin[type]
+      unauthorized = -> { error!('401 Unauthorized', 401) }
+      if %w[standard_layers vocabularies].include?(type)
+        unauthorized.call unless current_user.generic_admin.values_at('elements', 'segments', 'datasets').any?
+      else
+        unauthorized.call unless current_user.generic_admin[type]
+      end
     end
 
     def fetch_klass(name, id)

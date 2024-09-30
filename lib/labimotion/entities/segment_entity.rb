@@ -9,6 +9,5 @@ module Labimotion
     def klass_label
       object.segment_klass.label
     end
-
   end
 end

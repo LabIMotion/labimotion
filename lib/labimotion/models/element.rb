@@ -58,6 +58,9 @@ module Labimotion
     after_create :update_counter
     before_destroy :delete_attachment
 
+    def user_labels
+      tag&.taggable_data&.fetch('user_labels', nil)
+    end
 
     def attachments
       Attachment.where(attachable_id: self.id, attachable_type: self.class.name)
