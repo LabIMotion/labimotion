@@ -7,6 +7,11 @@ Gem::Specification.new do |spec|
   spec.authors       = ['Chia-Lin Lin', 'Pei-Chi Huang']
   spec.email         = ['chia-lin.lin@kit.edu', 'pei-chi.huang@kit.edu']
   spec.homepage      = 'https://github.com/LabIMotion/labimotion'
+  spec.metadata = {
+    "homepage_uri" => "https://github.com/LabIMotion/labimotion",
+    "source_code_uri" => "https://github.com/LabIMotion/labimotion",
+    "bug_tracker_uri" => "https://github.com/LabIMotion/labimotion/discussions"
+  }
   spec.license       = 'AGPL-3.0'
   spec.files         = Dir['lib/**/*.rb', 'labimotion.rb']
   spec.require_paths = ['lib']
