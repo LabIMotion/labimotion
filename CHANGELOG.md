@@ -1,6 +1,23 @@
 # LabIMotion Changelog
 
-## [1.3.0] 
+## [1.4.1]
+> 2024-10-24
+
+* Bug fixes
+
+
+## [1.4.0]
+> 2024-08-22
+
+* Features and enhancements:
+  * **Preview image function for the “Upload” field type**: An image preview is provided once the uploaded file is an image. Furthermore, users can zoom in/out by changing the percentage, and the original file can be opened with one click. See the [idea](https://github.com/LabIMotion/labimotion/discussions/19) and a [visual demonstration](https://www.youtube.com/watch?v=FzNT2NSk_wc&feature=youtu.be).
+  * **Labeling feature**: Allows users to add custom labels to elements for better organization and categorization. This feature enhances searchability and management within the system. See the [idea](https://github.com/LabIMotion/labimotion/discussions/28) and a [visual demonstration](https://www.youtube.com/watch?v=geuMQzN91aQ&feature=youtu.be).
+  * **Drag reactions to elements**: Users can now drag and drop reactions onto elements, making the interface more interactive and intuitive. Consequently, the Export/Import Collection function and Reporting function will also include reaction data. See the [idea](https://github.com/LabIMotion/labimotion/discussions/22) and a [visual demonstration](https://www.youtube.com/watch?v=-oYkJaqhZPE).
+  * **Change layer or field order via drag-and-drop**: Designers can rearrange layers or fields by simply dragging and dropping them into the desired order. This provides a more flexible and user-friendly way to manage data. A [visual demonstration](https://www.youtube.com/watch?v=V4nMukebAyA) is available.
+  * **Custom flow**: Enables users to record their steps/work and visualize them as a flow diagram. A [video](https://www.youtube.com/watch?v=n6Q9sybhzmc) for your reference.
+
+
+## [1.3.0]
 > 2024-04-24
 
 * Features and enhancements:
@@ -16,20 +33,20 @@
   * Fixed issue where metadata download displayed labels instead of values.
 
 
-## [1.1.4] 
+## [1.1.4]
 > 2024-02-15
 
 * Bug fixes:
   * fix generic dataset general info for CV
 
 
-## [1.1.3] 
+## [1.1.3]
 > 2024-01-31
 
 * Upgrade ruby to 2.7.8
 
 
-## [1.1.2] 
+## [1.1.2]
 > 2024-01-30
 
 * Bug fixes:
