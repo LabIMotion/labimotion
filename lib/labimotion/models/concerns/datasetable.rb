@@ -29,29 +29,33 @@ module Labimotion
         properties: ods.properties,
         properties_release: ods.properties_release,
         klass_uuid: ods.klass_uuid,
+        metadata: ods.metadata || {}
       )
     end
 
-    def save_dataset(**args)
+    def save_dataset(**dataset_args)
       return if not_dataset?
 
-      klass = Labimotion::DatasetKlass.find_by(id: args[:dataset_klass_id])
+      args = dataset_args[:dataset]
+      dataset_klass_id = args[:dataset_klass_id]
+      klass = Labimotion::DatasetKlass.find_by(id: dataset_klass_id)
       uuid = SecureRandom.uuid
+      metadata = args[:metadata] || {}
       props = args[:properties]
       props['pkg'] = Labimotion::Utils.pkg(props['pkg'])
       props['identifier'] = klass.identifier if klass.identifier.present?
       props['uuid'] = uuid
       props['klass'] = 'Dataset'
-      props = Labimotion::VocabularyHandler.update_vocabularies(props, args[:current_user], args[:element])
+      props['klass_uuid'] = klass.uuid
+      props = Labimotion::VocabularyHandler.update_vocabularies(props, dataset_args[:current_user], dataset_args[:element])
 
       ds = Labimotion::Dataset.find_by(element_type: self.class.name, element_id: id)
-      if ds.present? && (ds.klass_uuid != props['klass_uuid'] || ds.properties != props)
-        ds.update!(properties_release: klass.properties_release, uuid: uuid, dataset_klass_id: args[:dataset_klass_id], properties: props, klass_uuid: props['klass_uuid'])
+      if ds.present? && (ds.klass_uuid != klass.uuid || ds.properties != props || ds.metadata != metadata)
+        ds.update!(properties_release: klass.properties_release, uuid: uuid, dataset_klass_id: dataset_klass_id, properties: props, klass_uuid: klass.uuid, metadata: metadata)
       end
       return if ds.present?
 
-      props['klass_uuid'] = klass.uuid
-      Labimotion::Dataset.create!(properties_release: klass.properties_release, uuid: uuid, dataset_klass_id: args[:dataset_klass_id], element_type: self.class.name, element_id: id, properties: props, klass_uuid: klass.uuid)
+      Labimotion::Dataset.create!(properties_release: klass.properties_release, uuid: uuid, dataset_klass_id: dataset_klass_id, element_type: self.class.name, element_id: id, properties: props, klass_uuid: klass.uuid, metadata: metadata)
     end
 
     def destroy_datasetable

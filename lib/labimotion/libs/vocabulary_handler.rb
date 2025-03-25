@@ -4,8 +4,10 @@ module Labimotion
   class VocabularyHandler
     class << self
       def update_vocabularies(properties, current_user, element)
+        return properties if properties.nil? || !properties.is_a?(Hash) || properties[Labimotion::Prop::LAYERS].nil?
+
         properties[Labimotion::Prop::LAYERS].each do |key, layer|
-          update_layer_vocabularies(layer, key, properties, current_user, element)
+          update_layer_vocabularies!(layer, key, properties, current_user, element)
         end
         properties
       rescue StandardError => e
@@ -23,12 +25,12 @@ module Labimotion
 
       private
 
-      def update_layer_vocabularies(layer, key, properties, current_user, element)
+      def update_layer_vocabularies!(layer, key, properties, current_user, element)
         field_vocabularies = layer[Labimotion::Prop::FIELDS].select { |field| field['is_voc'] }
         field_vocabularies.each do |field|
           idx = layer[Labimotion::Prop::FIELDS].index(field)
           val = get_vocabulary_value(field, current_user, element)
-          update_field_value(properties, key, idx, val) if val.present?
+          update_field_value!(properties, key, idx, val)
         end
       end
 
@@ -44,6 +46,7 @@ module Labimotion
           get_segment_value(field, element)
         when 'Dataset'
           # TODO: Implement Dataset logic here
+          # TODO: Update datasetable.save_dataset
           nil
         end
       end
@@ -91,9 +94,8 @@ module Labimotion
         fields.find { |ss| ss['field'] == field['field_id'] }&.dig('value')
       end
 
-      def update_field_value(properties, key, idx, val)
-        properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS][idx]['value'] = val
-        properties
+      def update_field_value!(properties, key, idx, val)
+        Labimotion::PropertiesHandler.update_field_value!(properties, key, idx, val)
       end
 
       def load_from_files

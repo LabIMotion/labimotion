@@ -1,9 +1,9 @@
 # frozen_string_literal: true
-#
+
 require 'labimotion/entities/application_entity'
 module Labimotion
-  class SegmentRevisionEntity < ApplicationEntity
-    expose :id, :segment_id, :uuid, :klass_uuid, :properties, :created_at
+  class SegmentRevisionEntity < Labimotion::ApplicationEntity
+    expose :id, :segment_id, :uuid, :klass_uuid, :properties, :metadata, :created_at
     def created_at
       object.created_at.strftime('%d.%m.%Y, %H:%M')
     end
@@ -12,6 +12,8 @@ module Labimotion
       object.properties[Labimotion::Prop::LAYERS]&.keys.each do |key|
         field_sample_molecules = object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::DRAG_SAMPLE || ss['type'] == Labimotion::FieldType::DRAG_MOLECULE }
         field_sample_molecules.each do |field|
+          next unless field['value'].is_a?(Hash)
+
           idx = object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].index(field)
           sid = field.dig('value', 'el_id')
           next unless sid.present?

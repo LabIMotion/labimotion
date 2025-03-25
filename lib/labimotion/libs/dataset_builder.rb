@@ -29,7 +29,8 @@ module Labimotion
     end
 
     def self.find_dataset_klass(ols_term_id)
-      Labimotion::DatasetKlass.find_by(ols_term_id: ols_term_id)
+      result = Labimotion::TemplateMatcher.find_best_match(ols_term_id)
+      result[:template]
     end
 
     def self.create_dataset(container, klass)
@@ -43,7 +44,8 @@ module Labimotion
         element_id: container.id,
         properties: props,
         properties_release: klass.properties_release,
-        klass_uuid: klass.uuid
+        klass_uuid: klass.uuid,
+        metadata: klass.metadata
       )
     end
 

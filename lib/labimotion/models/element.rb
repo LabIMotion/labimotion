@@ -31,6 +31,7 @@ module Labimotion
 
     belongs_to :element_klass, class_name: 'Labimotion::ElementKlass'
 
+    # has_ancestry ancestry_format: :materialized_path2
     has_ancestry orphan_strategy: :adopt
 
     has_many :collections_elements,  inverse_of: :element, dependent: :destroy, class_name: 'Labimotion::CollectionsElement'
@@ -49,6 +50,7 @@ module Labimotion
     scope :elements_updated_time_to, ->(time) { where('elements.updated_at <= ?', time) }
 
     belongs_to :creator, foreign_key: :created_by, class_name: 'User'
+    before_validation :set_root_ancestry_if_nil
     validates :creator, presence: true
 
     has_many :elements_elements, foreign_key: :parent_id, class_name: 'Labimotion::ElementsElement'
@@ -57,6 +59,12 @@ module Labimotion
     before_save :auto_set_short_label
     after_create :update_counter
     before_destroy :delete_attachment
+
+    # align with eln change on preview attachment
+    def preview_attachment
+      image_atts = attachments.select(&:type_image?)
+      image_atts[0] || attachments[0]
+    end
 
     def user_labels
       tag&.taggable_data&.fetch('user_labels', nil)
@@ -71,7 +79,7 @@ module Labimotion
     end
 
     def analyses
-      container ? container.analyses : []
+      container ? container.analyses : Container.none
     end
 
     def auto_set_short_label
@@ -106,6 +114,36 @@ module Labimotion
       end
       get_ids.call(pids)
       pids
+    end
+
+    # Fetch elements for a user (owned + shared)
+    def self.fetch_for_user(user_id, name: nil, short_label: nil, klass_id: nil, limit: 20)
+      # Prevent abuse by capping and validating limit
+      limit = [limit.to_i, 100].min
+      limit = 20 if limit <= 0
+
+      # Build base scope with common filters
+      apply_filters = lambda do |scope|
+        scope = scope.where('elements.name ILIKE ?', "%#{sanitize_sql_like(name)}%") if name.present?
+        scope = scope.where('elements.short_label ILIKE ?', "%#{sanitize_sql_like(short_label)}%") if short_label.present?
+        scope = scope.by_klass_id(klass_id) if klass_id.present?
+        scope
+      end
+
+      # Owned elements
+      owned = apply_filters.call(
+        joins(collections: :user).where(collections: { user_id: user_id })
+      )
+
+      # Shared (synced) elements
+      shared = apply_filters.call(
+        joins(collections: :sync_collections_users).where(sync_collections_users: { user_id: user_id })
+      )
+
+      # Combine (remove duplicates), order, and limit
+      from("(#{owned.to_sql} UNION #{shared.to_sql}) AS elements")
+        .order(short_label: :desc)
+        .limit(limit)
     end
 
     def thumb_svg
@@ -147,6 +185,10 @@ module Labimotion
       else
         attachments.each(&:destroy!)
       end
+    end
+
+    def set_root_ancestry_if_nil
+      self.ancestry ||= '/'
     end
   end
 end

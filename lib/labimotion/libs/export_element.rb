@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require 'ostruct'
 require 'export_table'
 require 'labimotion/version'
 require 'labimotion/utils/units'
@@ -33,6 +34,12 @@ module Labimotion
       @export_format = export_format
     rescue StandardError => e
       Labimotion.log_exception(e)
+    end
+
+    def sample_url
+      host = ENV['PUBLIC_URL'] || 'http://localhost:3000'
+      api = 'mydb/collection/all/sample'
+      "#{host}/#{api}"
     end
 
     def build_layers
@@ -182,7 +189,8 @@ module Labimotion
         name = val['el_name'].present? ? "Name: [#{val['el_name']}] \n" : ''
         ext = val['el_external_label'].present? ? "Ext. Label: [#{val['el_external_label']}] \n" : ''
         mass = val['el_molecular_weight'].present? ? "Mass: [#{val['el_molecular_weight']}] \n" : ''
-        "#{label}#{name}#{ext}#{mass}"
+        url = val['el_id'].present? ? "#{sample_url}/#{val['el_id']}" : ''
+        "#{label}#{name}#{ext}#{mass}#{url}"
       when Labimotion::FieldType::DRAG_MOLECULE
         val = sub_val[sub_field['id']]['value'] || {}
         smile = val['el_smiles'].present? ? "SMILES: [#{val['el_smiles']}] \n" : ''
@@ -193,7 +201,7 @@ module Labimotion
       when Labimotion::FieldType::SELECT
         sub_val[sub_field['id']]['value']
       when Labimotion::FieldType::SYSTEM_DEFINED
-        unit = Labimotion::Units::FIELDS.find { |o| o[:field] == sub_field['option_layers'] }&.fetch(:units, [])&.find { |u| u[:key] == sub_field['value_system'] }&.fetch(:label, '')
+        unit = Labimotion::Units::FIELDS.find { |o| o[:field] == sub_field['option_layers'] }&.fetch(:units, [])&.find { |u| u[:key] == sub_val[sub_field['id']]['value_system'] }&.fetch(:label, '')
         val = sub_val[sub_field['id']]['value'].to_s + ' ' + unit
         val = Sablon.content(:html, "<div>" + val + "</div>") if val.include? '<'
         val

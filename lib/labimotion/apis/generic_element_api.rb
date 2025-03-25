@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'cgi'
 require 'labimotion/conf'
 require 'labimotion/libs/export_element'
 
@@ -59,6 +60,65 @@ module Labimotion
         end
       end
 
+      namespace :search_by_like do
+        desc 'Search elements by name (case-insensitive like search)'
+        params do
+          requires :name, type: String, desc: 'Search query for element name'
+          requires :short_label, type: String, desc: 'Search query for element short label'
+          requires :klass_id, type: Integer, desc: 'Filter by element klass id'
+          optional :limit, type: Integer, desc: 'Maximum number of results', default: 20
+        end
+        get do
+          scope = Labimotion::Element.fetch_for_user(
+            current_user.id,
+            name: params[:name],
+            short_label: params[:short_label],
+            klass_id: params[:klass_id],
+            limit: params[:limit]
+          )
+
+          results = scope.map do |element|
+            Labimotion::ElementLookupEntity.represent(element)
+          end
+
+          { elements: results, total_count: results.count }
+        rescue StandardError => e
+          Labimotion.log_exception(e, current_user)
+          { elements: [], total_count: 0, error: e.message }
+        end
+      end
+
+      namespace :search_basic_by_like do
+        desc 'Search basic elements by name and short label (case-insensitive like search)'
+        params do
+          requires :klass_name, type: String, desc: 'Class name (device_description or wellplate or ...etc.)', default: 'device_description'
+          requires :name, type: String, desc: 'Search query for basic element name'
+          requires :short_label, type: String, desc: 'Search query for basic element short label'
+          optional :limit, type: Integer, desc: 'Maximum number of results', default: 20
+        end
+        get do
+          # Convert snake_case to PascalCase (e.g. device_description -> DeviceDescription)
+          klass_name = params[:klass_name].camelize
+          klass = "Labimotion::#{klass_name}".constantize
+
+          scope = klass.fetch_for_user(
+            current_user.id,
+            name: params[:name],
+            short_label: params[:short_label],
+            limit: params[:limit]
+          )
+
+          results = scope.map do |record|
+            Labimotion::ElementLookupEntity.represent(record)
+          end
+
+          { elements: results, total_count: results.count }
+        rescue StandardError => e
+          Labimotion.log_exception(e, current_user)
+          { elements: [], total_count: 0, error: e.message }
+        end
+      end
+
       namespace :export do
         desc 'export element'
         params do
@@ -79,7 +139,7 @@ module Labimotion
           env['api.format'] = :binary
           content_type 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           el_filename = export.res_name
-          filename = URI.escape(el_filename)
+          filename = CGI.escape(el_filename)
           # header['Content-Disposition'] = "attachment; filename=abc.docx"
           header('Content-Disposition', "attachment; filename=\"#{filename}\"")
 
@@ -188,7 +248,7 @@ module Labimotion
         get do
           klass = Labimotion::Segment.find(params[:id])
           list = klass.segments_revisions unless klass.nil?
-          present list&.sort_by(&:created_at).reverse, with: Labimotion::SegmentRevisionEntity, root: 'revisions'
+          present list&.order(created_at: :desc)&.limit(10), with: Labimotion::SegmentRevisionEntity, root: 'revisions'
         rescue StandardError => e
           Labimotion.log_exception(e, current_user)
           []
@@ -221,6 +281,27 @@ module Labimotion
         end
       end
 
+      namespace :list_element_klass do
+        desc 'list Generic Element Klass'
+        params do
+          optional :is_generic, type: Boolean, desc: 'Is Generic or Non-Generic Element'
+          optional :is_active, type: Boolean, desc: 'Active or Inactive'
+          optional :displayed_in_list, type: Boolean, desc: 'Display in list format', default: true
+        end
+        get do
+          scope = params[:displayed_in_list] ? Labimotion::ElementKlass.for_list_display : Labimotion::ElementKlass.all
+          scope = scope.where(is_generic: params[:is_generic]) if params.key?(:is_generic)
+          scope = scope.where(is_active: params[:is_active]) if params.key?(:is_active)
+
+          list = scope.sort_by(&:place)
+          present list, with: Labimotion::ElementKlassEntity, root: 'klass', displayed_in_list: params[:displayed_in_list]
+        rescue StandardError => e
+          Labimotion.log_exception(e, current_user)
+          raise e
+        end
+      end
+
+      # Deprecated: This namespace is no longer used, but kept for backward compatibility.
       namespace :klasses_all do
         desc 'get all klasses for admin function'
         get do
@@ -266,7 +347,7 @@ module Labimotion
         end
         after_validation do
           authenticate_admin!(params[:klass].gsub(/(Klass)/, 's').downcase)
-          @klz = fetch_klass(params[:klass], params[:id])
+          fetch_klass(params[:klass], params[:id])
         end
         post do
           deactivate_klass(params)
@@ -297,11 +378,12 @@ module Labimotion
           requires :klass, type: String, desc: 'Klass', values: %w[ElementKlass SegmentKlass DatasetKlass]
           requires :id, type: Integer, desc: 'Klass ID'
           requires :properties_template, type: Hash
+          optional :metadata, type: Hash, default: {}
           optional :release, type: String, default: 'draft', desc: 'release status', values: %w[draft major minor patch]
         end
         after_validation do
           authenticate_admin!(params[:klass].gsub(/(Klass)/, 's').downcase)
-          @klz = fetch_klass(params[:klass], params[:id])
+          fetch_klass(params[:klass], params[:id])
         end
         post do
           update_template(params, current_user)
@@ -392,7 +474,7 @@ module Labimotion
               detail_levels: ElementDetailLevelCalculator.new(user: current_user, element: element).detail_levels,
               policy: @element_policy
             ),
-            attachments: attach_thumbnail(element&.attachments)
+            attachments: Entities::AttachmentEntity.represent(element&.attachments)
           }
         rescue StandardError => e
           Labimotion.log_exception(e, current_user)
@@ -435,7 +517,7 @@ module Labimotion
                 element,
                 detail_levels: ElementDetailLevelCalculator.new(user: current_user, element: element).detail_levels,
               ),
-              attachments: attach_thumbnail(element&.attachments),
+              attachments: Entities::AttachmentEntity.represent(element&.attachments),
             }
           rescue StandardError => e
             Labimotion.log_exception(e, current_user)
@@ -443,6 +525,27 @@ module Labimotion
           end
         end
       end
+    end
+  end
+
+  # Entity for element lookup by name response
+  class ElementLookupEntity < Grape::Entity
+    expose :id
+    expose :name
+    expose :short_label do |element|
+      element.respond_to?(:short_label) ? element.short_label : nil
+    end
+    expose :element_klass_id, as: :element_klass_id do |element|
+      element.element_klass&.id
+    end
+    expose :klass_label, as: :klass_label do |element|
+      element.element_klass&.label
+    end
+    expose :klass_name, as: :klass_name do |element|
+      element.element_klass&.name
+    end
+    expose :klass_icon, as: :klass_icon do |element|
+      element.element_klass&.icon_name
     end
   end
 end

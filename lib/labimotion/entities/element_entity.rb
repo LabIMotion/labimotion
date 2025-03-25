@@ -3,7 +3,7 @@
 require 'labimotion/entities/properties_entity'
 ## TODO: Refactor labimotion to use the same entities as chemotion
 module Labimotion
-  class ElementEntity < PropertiesEntity
+  class ElementEntity < Labimotion::PropertiesEntity
     with_options(anonymize_below: 0) do
       expose! :can_copy,        unless: :displayed_in_list
       expose! :can_publish,     unless: :displayed_in_list
@@ -16,11 +16,13 @@ module Labimotion
       expose! :name
       expose! :properties
       expose! :properties_release
+      expose! :metadata
       expose! :short_label
       expose! :thumb_svg
       expose! :type
       expose! :uuid
       expose! :user_labels
+      expose! :preview_attachment # align with eln change
     end
 
     with_options(anonymize_below: 10) do

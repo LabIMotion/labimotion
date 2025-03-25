@@ -8,8 +8,8 @@ module Labimotion
   module SegmentHelpers
     extend Grape::API::Helpers
 
-    def klass_list(el_klass, is_active=false)
-      scope = Labimotion::SegmentKlass.all
+    def klass_list(el_klass, is_active = false, displayed_in_list = false)
+      scope = displayed_in_list ? Labimotion::SegmentKlass.for_list_display : Labimotion::SegmentKlass.all
       scope = scope.where(is_active: is_active) if is_active.present? && is_active == true
       scope = scope.joins(:element_klass).where(klass_element: params[:element], is_active: true).preload(:element_klass) if el_klass.present?
       scope.order('place') || []
@@ -99,7 +99,7 @@ module Labimotion
 
     def create_repo_klass(params, current_user, origin)
       response = Labimotion::TemplateHub.fetch_identifier('SegmentKlass', params[:identifier], origin)
-      attributes = response.slice('label', 'desc', 'uuid', 'identifier', 'released_at', 'properties_release', 'version')
+      attributes = response.slice('label', 'desc', 'uuid', 'identifier', 'released_at', 'properties_release', 'version', 'metadata')
       attributes['properties_release']['identifier'] = attributes['identifier']
       attributes['properties_template'] = attributes['properties_release']
       attributes['place'] = ((Labimotion::SegmentKlass.all.length * 10) || 0) + 10

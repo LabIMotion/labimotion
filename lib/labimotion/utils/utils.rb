@@ -107,5 +107,47 @@ module Labimotion
       pkg['labimotion'] = Labimotion::VERSION
       pkg
     end
+
+    # Safely resolve a Labimotion class from a string name
+    # @param class_name [String] the class name (e.g., 'Element', 'Segment', 'ElementKlass')
+    # @param namespace [Boolean] whether to include the Labimotion namespace (default: true)
+    # @return [Class, nil] the resolved class or nil if not found
+    # @raise [NameError] if the class cannot be constantized
+    #
+    # @example
+    #   Utils.resolve_class('Element') #=> Labimotion::Element
+    #   Utils.resolve_class('Sample', false) #=> Sample
+    def self.resolve_class(class_name, namespace: true)
+      return nil if class_name.nil? || class_name.to_s.strip.empty?
+
+      full_name = namespace ? "Labimotion::#{class_name}" : class_name.to_s
+      full_name.constantize
+    rescue NameError => e
+      Labimotion.log_exception(e)
+      raise
+    end
+
+    # Resolve a Labimotion entity class from a string name
+    # @param class_name [String] the base class name (e.g., 'Element', 'Segment')
+    # @return [Class, nil] the resolved entity class
+    #
+    # @example
+    #   Utils.resolve_entity_class('Element') #=> Labimotion::ElementEntity
+    def self.resolve_entity_class(class_name)
+      resolve_class("#{class_name}Entity")
+    end
+
+    # Resolve a Labimotion revision class from a string name
+    # @param class_name [String] the base class name (e.g., 'Element', 'Segment')
+    # @param plural [Boolean] whether to use plural form (default: false)
+    # @return [Class, nil] the resolved revision class
+    #
+    # @example
+    #   Utils.resolve_revision_class('Element') #=> Labimotion::ElementsRevision
+    #   Utils.resolve_revision_class('ElementKlass', plural: true) #=> Labimotion::ElementKlassesRevision
+    def self.resolve_revision_class(class_name, plural: false)
+      suffix = plural ? 'esRevision' : 'sRevision'
+      resolve_class("#{class_name}#{suffix}")
+    end
   end
 end

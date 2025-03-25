@@ -46,11 +46,17 @@ module Labimotion
       end
     end
 
-    def save_segments(**args) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
-      return if args[:segments].nil?
+    def touch_vocabulary(current_user)
+      touch_element_properties(current_user) if instance_of?(::Labimotion::Element)
+      touch_segments_properties(current_user)
+      touch_analyses_properties(current_user)
+    end
 
-      segments = []
-      args[:segments]&.each do |seg|
+    def save_segments(**args) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+      args_segments = args[:segments] || []
+
+      current_user = User.find_by(id: args[:current_user_id])
+      args_segments.each do |seg|
         klass = Labimotion::SegmentKlass.find_by(id: seg['segment_klass_id'])
         uuid = SecureRandom.uuid
         props = seg['properties']
@@ -59,21 +65,52 @@ module Labimotion
         props['uuid'] = uuid
         props['klass'] = 'Segment'
         props = Labimotion::SampleAssociation.update_sample_association(props, args[:current_user_id])
-        current_user = User.find_by(id: args[:current_user_id])
-        props = Labimotion::VocabularyHandler.update_vocabularies(props, current_user, self)
+        # props = Labimotion::VocabularyHandler.update_vocabularies(props, current_user, self)
         segment = Labimotion::Segment.where(element_type: self.class.name, element_id: self.id, segment_klass_id: seg['segment_klass_id']).order(id: :desc).first
         if segment.present? && (segment.klass_uuid != props['klass_uuid'] || segment.properties != props)
-          segment.update!(properties_release: klass.properties_release, properties: props, uuid: uuid, klass_uuid: props['klass_uuid'])
-          segments.push(segment)
+          segment.update!(properties_release: klass.properties_release, properties: props, uuid: uuid, klass_uuid: props['klass_uuid'], metadata: seg['metadata'] || {})
+          # segments.push(segment)
           Labimotion::Segment.where(element_type: self.class.name, element_id: self.id, segment_klass_id: seg['segment_klass_id']).where.not(id: segment.id).destroy_all
         end
         next if segment.present?
 
         props['klass_uuid'] = klass.uuid
-        segment = Labimotion::Segment.create!(properties_release: klass.properties_release, segment_klass_id: seg['segment_klass_id'], element_type: self.class.name, element_id: self.id, properties: props, created_by: args[:current_user_id], uuid: uuid, klass_uuid: klass.uuid)
-        segments.push(segment)
+        segment = Labimotion::Segment.create!(properties_release: klass.properties_release, segment_klass_id: seg['segment_klass_id'], element_type: self.class.name, element_id: self.id, properties: props, created_by: args[:current_user_id], uuid: uuid, klass_uuid: klass.uuid, metadata: seg['metadata'] || {})
+        # segments.push(segment)
       end
+
+      self.reload
+      touch_vocabulary(current_user)
+      self.reload
       segments
+    end
+
+    def touch_element_properties(current_user)
+      touch_properties_for_object(self, current_user)
+    end
+
+    def touch_segments_properties(current_user)
+      segments.each do |segment|
+        touch_properties_for_object(segment, current_user)
+      end
+    end
+
+    def touch_analyses_properties(current_user)
+      analyses.each do |analysis|
+        analysis.children.each do |child|
+          dataset = child.dataset
+          next if dataset.nil?
+
+          touch_properties_for_object(dataset, current_user)
+        end
+      end
+    end
+
+    # NOTE: Update bypassing validations, callbacks, and timestamp updates
+    def touch_properties_for_object(object, current_user)
+      props_dup = object.properties.deep_dup
+      Labimotion::VocabularyHandler.update_vocabularies(props_dup, current_user, self)
+      object.update_column(:properties, props_dup) if props_dup != object.properties
     end
   end
 end

@@ -12,19 +12,21 @@ module Labimotion
           optional :element, type: String, desc: "Klass Element, e.g. Sample, Reaction, Mof,..."
         end
         get do
-          list = klass_list(params[:element], true)
+          list = klass_list(params[:element], true, false)
           present list, with: Labimotion::SegmentKlassEntity, root: 'klass'
         end
       end
 
+      # TODO: params[:displayed_in_list] will be used in the future to control the display format, set 'false' for now.
       namespace :list_segment_klass do
         desc 'list Generic Segment Klass'
         params do
           optional :is_active, type: Boolean, desc: 'Active or Inactive Segment'
+          optional :displayed_in_list, type: Boolean, desc: 'Display in list format', default: false
         end
         get do
-          list = klass_list(nil, params[:is_active])
-          present list, with: Labimotion::SegmentKlassEntity, root: 'klass'
+          list = klass_list(nil, params[:is_active], false)
+          present list, with: Labimotion::SegmentKlassEntity, root: 'klass', displayed_in_list: false
         end
       end
 

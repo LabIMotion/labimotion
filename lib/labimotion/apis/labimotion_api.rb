@@ -1,7 +1,10 @@
+# frozen_string_literal: true
+
 # app/api/labimotion/central_api.rb
 module Labimotion
   class LabimotionAPI < Grape::API
     mount Labimotion::ConverterAPI
+    mount Labimotion::ExporterAPI
     mount Labimotion::GenericKlassAPI
     mount Labimotion::GenericElementAPI
     mount Labimotion::GenericDatasetAPI

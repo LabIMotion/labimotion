@@ -22,7 +22,8 @@ module Labimotion
         klass_uuid: klass_uuid,
         properties: properties,
         ## created_by: user_for_revision&.id,
-        properties_release: properties_release
+        properties_release: properties_release,
+        metadata: metadata
       }
       attributes["#{Labimotion::Utils.element_name_dc(self.class.name)}_id"] = id
       attributes['name'] = name if self.class.name == 'Labimotion::Element'

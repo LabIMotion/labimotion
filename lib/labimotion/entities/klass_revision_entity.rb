@@ -1,15 +1,14 @@
 # frozen_string_literal: true
 
+require 'labimotion/entities/application_entity'
 module Labimotion
-  # KlassRevisionEntity
-  class KlassRevisionEntity < ApplicationEntity
-    expose :id, :uuid, :properties_release, :version, :released_at
+  class KlassRevisionEntity < Labimotion::ApplicationEntity
+    expose :id, :uuid, :version, :released_at, :klass_id, :submitted
+    expose :properties_release, **DISPLAYED_IN_LIST_CONDITION, anonymize_with: {}
+    expose :metadata, **DISPLAYED_IN_LIST_CONDITION, anonymize_with: {}
 
-    expose :klass_id do |object|
-      klass_id = object.element_klass_id if object.respond_to? :element_klass_id
-      klass_id = object.segment_klass_id if object.respond_to? :segment_klass_id
-      klass_id = object.dataset_klass_id if object.respond_to? :dataset_klass_id
-      klass_id
+    def klass_id
+      object.klass&.id
     end
 
     def released_at
@@ -17,4 +16,3 @@ module Labimotion
     end
   end
 end
-

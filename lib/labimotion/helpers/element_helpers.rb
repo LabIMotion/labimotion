@@ -82,7 +82,8 @@ module Labimotion
         klass_uuid: klass[:uuid],
         properties: properties,
         properties_release: params[:properties_release],
-        created_by: current_user.id,
+        metadata: params[:metadata] || {},
+        created_by: current_user.id
       }
       element = Labimotion::Element.new(attributes)
 
@@ -93,12 +94,13 @@ module Labimotion
       all_coll = Collection.get_all_collection_for_user(current_user.id)
       element.collections << all_coll
       element.save!
-      _properties = update_sample_association(params[:properties], current_user, element)
-      element.properties = update_vocabularies(_properties, current_user, element)
+      element.properties = update_sample_association(params[:properties], current_user, element)
+      # element.properties = update_vocabularies(_properties, current_user, element)
       element.container = update_datamodel(params[:container], current_user)
       element.save!
       update_element_labels(element, params[:user_labels], current_user.id)
       element.save_segments(segments: params[:segments], current_user_id: current_user.id)
+      element.save!
       element
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
@@ -115,7 +117,8 @@ module Labimotion
       params.delete(:user_labels)
       attributes = declared(params.except(:segments), include_missing: false)
       properties['pkg'] = Labimotion::Utils.pkg(properties['pkg'])
-      if element.klass_uuid != properties['klass_uuid'] || element.properties != properties || element.name != params[:name]
+      metadata = params[:metadata] || element.metadata || {}
+      if element.klass_uuid != properties['klass_uuid'] || element.properties != properties || element.name != params[:name] || element.metadata != metadata
         properties['klass'] = 'Element'
         uuid = SecureRandom.uuid
         properties['uuid'] = uuid
@@ -127,11 +130,15 @@ module Labimotion
         attributes['properties']['uuid'] = uuid
         attributes['uuid'] = uuid
         attributes['klass_uuid'] = properties['klass_uuid']
+        attributes['metadata'] = metadata
+        attributes['updated_at'] = Time.current
         element.update_columns(attributes)
       end
+      # element.save_segments(segments: params[:segments], current_user_id: current_user.id)
+      element.reload
       element.save_segments(segments: params[:segments], current_user_id: current_user.id)
       element.reload
-      element.properties = update_vocabularies(element.properties, current_user, element)
+      # element.properties = update_vocabularies(element.properties, current_user, element)
       ## element.user_for_revision = current_user
       element.save!
       element
@@ -192,7 +199,7 @@ module Labimotion
     def element_revisions(params)
       klass = Labimotion::Element.find(params[:id])
       list = klass.elements_revisions unless klass.nil?
-      list&.sort_by(&:created_at)&.reverse&.first(10)
+      list&.order(created_at: :desc)&.limit(10)
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
       raise e
@@ -330,7 +337,7 @@ module Labimotion
 
     def create_repo_klass(params, current_user, origin)
       response = Labimotion::TemplateHub.fetch_identifier('ElementKlass', params[:identifier], origin)
-      attributes = response.slice('name', 'label', 'desc', 'icon_name', 'uuid', 'klass_prefix', 'is_generic', 'identifier', 'properties_release', 'version')
+      attributes = response.slice('name', 'label', 'desc', 'icon_name', 'uuid', 'klass_prefix', 'is_generic', 'identifier', 'properties_release', 'version', 'metadata')
       attributes['properties_release']['identifier'] = attributes['identifier']
       attributes['properties_template'] = attributes['properties_release']
       attributes['place'] = ((Labimotion::ElementKlass.all.length * 10) || 0) + 10
