@@ -21,5 +21,12 @@ module Labimotion
       NMR_CONFIG = ::File.join(__dir__, 'libs', 'data', 'mapper', 'Source.json').freeze
       WIKI_CONFIG = ::File.join(__dir__, 'libs', 'data', 'mapper', 'Chemwiki.json').freeze
     end
+
+    module Klass
+      ELEMENT = 'ElementKlass'
+      SEGMENT = 'SegmentKlass'
+      DATASET = 'DatasetKlass'
+      ALL = [ELEMENT, SEGMENT, DATASET].freeze
+    end
   end
 end

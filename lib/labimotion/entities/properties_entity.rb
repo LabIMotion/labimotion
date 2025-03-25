@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'labimotion/entities/application_entity'
 
 module Labimotion
@@ -57,6 +58,8 @@ module Labimotion
     end
 
     def update_sample_or_molecule_field(key, field, idx)
+      return unless field['value'].is_a?(Hash)
+
       sid = field.dig('value', 'el_id')
       return unless sid.present?
 
@@ -78,6 +81,8 @@ module Labimotion
     end
 
     def update_reaction_field(key, field, idx)
+      return unless field['value'].is_a?(Hash)
+
       sid = field.dig('value', 'el_id')
       return unless sid.present?
 

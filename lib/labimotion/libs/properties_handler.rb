@@ -8,9 +8,9 @@ module Labimotion
       def check_val(field, type)
         case type
         when Labimotion::FieldType::DRAG_SAMPLE, Labimotion::FieldType::DRAG_ELEMENT
-          return field.dig('value', 'el_id').present?
+          return field['value'].is_a?(Hash) && field.dig('value', 'el_id').present?
         when Labimotion::FieldType::UPLOAD
-          return field.dig('value', 'files')&.length&.positive?
+          return field['value'].is_a?(Hash) && field.dig('value', 'files')&.length&.positive?
         when Labimotion::FieldType::TABLE
           return field[Labimotion::Prop::SUBFIELDS]&.length&.positive? && field['sub_values']&.length&.positive?
         end
@@ -90,6 +90,16 @@ module Labimotion
     rescue StandardError => e
       Labimotion.log_exception(e)
       properties
+    end
+
+    # Update field with value
+    def self.update_field_value!(properties, layer_key, field_index, value)
+      properties[Labimotion::Prop::LAYERS][layer_key][Labimotion::Prop::FIELDS][field_index]['value'] = value
+    end
+
+    # Delete field key
+    def self.delete_field_key!(properties, layer_key, field_index, key)
+      properties[Labimotion::Prop::LAYERS][layer_key][Labimotion::Prop::FIELDS][field_index].delete(key)
     end
   end
 end

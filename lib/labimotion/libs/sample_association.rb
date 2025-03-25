@@ -79,6 +79,7 @@ module Labimotion
         field_samples.each do |field|
           idx = properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].index(field)
           return if field.is_a?(String) || properties.is_a?(String)
+          next unless field['value'].is_a?(Hash)
 
           sid = field.dig('value', 'el_id')
           next if sid.blank?
@@ -102,7 +103,8 @@ module Labimotion
         field_elements = layer[Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::DRAG_ELEMENT }
         field_elements.each do |field|
           idx = properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].index(field)
-          next if field['value'].is_a?(String)
+          return if field.is_a?(String) || properties.is_a?(String)
+          next unless field['value'].is_a?(Hash)
 
           sid = field.dig('value', 'el_id')
           next if element.nil? || sid.blank? || sid == element.id
@@ -113,11 +115,12 @@ module Labimotion
           Labimotion::ElementsElement.find_or_create_by(parent_id: element.id, element_id: el.id)
           els << el.id
         end
-
       end
       if element.present?
-        es_list = Labimotion::ElementsSample.where(element_id: element.id).where.not(sample_id: sds)
-        ee_list = Labimotion::ElementsElement.where(parent_id: element.id).where.not(element_id: els&.flatten)
+        sds = sds.flatten.uniq
+        els = els.flatten.uniq
+        es_list = sds.present? ? Labimotion::ElementsSample.where(element_id: element.id).where.not(sample_id: sds) : Labimotion::ElementsSample.where(element_id: element.id)
+        ee_list = els.present? ? Labimotion::ElementsElement.where(parent_id: element.id).where.not(element_id: els) : Labimotion::ElementsElement.where(parent_id: element.id)
         es_list.destroy_all if es_list.present?
         ee_list.destroy_all if ee_list.present?
       end

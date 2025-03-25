@@ -60,6 +60,7 @@ module Labimotion
       properties.delete('eln') if properties['eln'].present?
       klz.updated_by = current_user.id
       klz.properties_template = properties
+      klz.metadata = params[:metadata] || {}
       klz.save!
       klz.reload
       klz.create_klasses_revision(current_user) if params[:release] != 'draft'

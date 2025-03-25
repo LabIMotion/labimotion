@@ -24,6 +24,7 @@ module Labimotion
   autoload :SegmentAPI, 'labimotion/apis/segment_api'
   autoload :LabimotionHubAPI, 'labimotion/apis/labimotion_hub_api'
   autoload :ConverterAPI, 'labimotion/apis/converter_api'
+  autoload :ExporterAPI, 'labimotion/apis/exporter_api'
   autoload :StandardLayerAPI, 'labimotion/apis/standard_layer_api'
   autoload :VocabularyAPI, 'labimotion/apis/vocabulary_api'
 
@@ -57,6 +58,7 @@ module Labimotion
   autoload :SearchHelpers, 'labimotion/helpers/search_helpers'
   autoload :ParamHelpers, 'labimotion/helpers/param_helpers'
   autoload :ConverterHelpers, 'labimotion/helpers/converter_helpers'
+  autoload :ExporterHelpers, 'labimotion/helpers/exporter_helpers'
   autoload :SampleAssociationHelpers, 'labimotion/helpers/sample_association_helpers'
   autoload :RepositoryHelpers, 'labimotion/helpers/repository_helpers'
   autoload :VocabularyHelpers, 'labimotion/helpers/vocabulary_helpers'
@@ -67,11 +69,13 @@ module Labimotion
   autoload :NmrMapper, 'labimotion/libs/nmr_mapper'
   autoload :NmrMapperRepo, 'labimotion/libs/nmr_mapper_repo' ## for Chemotion Repository
   autoload :TemplateHub, 'labimotion/libs/template_hub'
+  autoload :TemplateMatcher, 'labimotion/libs/template_matcher'
   autoload :ExportDataset, 'labimotion/libs/export_dataset'
   autoload :SampleAssociation, 'labimotion/libs/sample_association'
   autoload :PropertiesHandler, 'labimotion/libs/properties_handler'
   autoload :AttachmentHandler, 'labimotion/libs/attachment_handler'
   autoload :VocabularyHandler, 'labimotion/libs/vocabulary_handler'
+  autoload :XlsxExporter, 'labimotion/libs/xlsx_exporter'
 
   ######## Utils
   autoload :Prop, 'labimotion/utils/prop'
@@ -109,9 +113,17 @@ module Labimotion
   autoload :StdLayer, 'labimotion/models/std_layer'
   autoload :StdLayersRevision, 'labimotion/models/std_layers_revision'
 
+  autoload :DeviceDescription, 'labimotion/models/device_description'
+  autoload :Reaction, 'labimotion/models/reaction'
+  autoload :ResearchPlan, 'labimotion/models/research_plan'
+  autoload :Sample, 'labimotion/models/sample'
+  autoload :Screen, 'labimotion/models/screen'
+  autoload :Wellplate, 'labimotion/models/wellplate'
+
   ######## Models/Concerns
   autoload :GenericKlassRevisions, 'labimotion/models/concerns/generic_klass_revisions'
   autoload :GenericRevisions, 'labimotion/models/concerns/generic_revisions'
+  autoload :ElementFetchable, 'labimotion/models/concerns/element_fetchable'
   autoload :Segmentable, 'labimotion/models/concerns/segmentable'
   autoload :Datasetable, 'labimotion/models/concerns/datasetable'
   autoload :AttachmentConverter, 'labimotion/models/concerns/attachment_converter.rb'

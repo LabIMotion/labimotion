@@ -69,7 +69,7 @@ module Labimotion
 
           dataset = Labimotion::Dataset.create!(
             fields.slice(
-              'properties', 'properties_release'
+              'properties', 'properties_release', 'metadata'
             ).merge(
               ## created_by: current_user_id,
               element: element,
@@ -112,7 +112,7 @@ module Labimotion
 
         segment = Labimotion::Segment.create!(
           fields.slice(
-            'properties', 'properties_release'
+            'properties', 'properties_release', 'metadata'
           ).merge(
             created_by: current_user_id,
             element: element,
@@ -149,7 +149,7 @@ module Labimotion
 
         element = Labimotion::Element.create!(
           fields.slice(
-            'name', 'properties', 'properties_release'
+            'name', 'properties', 'properties_release', 'metadata'
           ).merge(
             created_by: current_user_id,
             element_klass: element_klass,

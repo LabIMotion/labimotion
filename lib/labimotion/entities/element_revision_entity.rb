@@ -3,8 +3,8 @@
 require 'labimotion/entities/application_entity'
 module Labimotion
   # ElementRevisionEntity
-  class ElementRevisionEntity < ApplicationEntity
-    expose :id, :element_id, :uuid, :name, :klass_uuid, :properties, :created_at
+  class ElementRevisionEntity < Labimotion::ApplicationEntity
+    expose :id, :element_id, :uuid, :name, :klass_uuid, :properties, :metadata, :created_at
     def created_at
       object.created_at.strftime('%d.%m.%Y, %H:%M')
     end
@@ -13,6 +13,8 @@ module Labimotion
       object.properties[Labimotion::Prop::LAYERS]&.keys.each do |key|
         field_sample_molecules = object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].select { |ss| ss['type'] == Labimotion::FieldType::DRAG_SAMPLE || ss['type'] == Labimotion::FieldType::DRAG_MOLECULE }
         field_sample_molecules.each do |field|
+          next unless field['value'].is_a?(Hash)
+
           idx = object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].index(field)
           sid = field.dig('value', 'el_id')
           next unless sid.present?

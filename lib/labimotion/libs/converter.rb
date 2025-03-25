@@ -6,6 +6,7 @@ require 'json'
 require 'date'
 require 'labimotion/version'
 require 'labimotion/utils/utils'
+require 'labimotion/helpers/converter_helpers'
 
 # rubocop: disable Metrics/AbcSize
 # rubocop: disable Metrics/MethodLength
@@ -221,13 +222,27 @@ module Labimotion
         element_id: cds.id,
         properties: props,
         properties_release: klass.properties_release,
-        klass_uuid: klass.uuid
+        klass_uuid: klass.uuid,
+        metadata: klass.metadata
       )
     end
 
     def self.update_ds(dataset, dsr, current_user = nil) # rubocop: disable Metrics/PerceivedComplexity
       layers = dataset.properties[Labimotion::Prop::LAYERS] || {}
       new_prop = dataset.properties
+
+      container = dataset.element
+
+      # Extract and update general description fields
+      general_dsr = dsr.select { |ds| ds[:layer] == 'general' }
+      if general_dsr.present?
+        date = general_dsr.find { |ds| ds[:field] == 'date' }&.dig(:value)
+        time = general_dsr.find { |ds| ds[:field] == 'time' }&.dig(:value)
+        Labimotion::ConverterHelpers.update_general_description(container, current_user, date: date, time: time)
+      else
+        Labimotion::ConverterHelpers.update_general_description(container, current_user)
+      end
+
       dsr.each do |ds|
         layer = layers[ds[:layer]]
         next if layer.blank? || layer[Labimotion::Prop::FIELDS].blank?

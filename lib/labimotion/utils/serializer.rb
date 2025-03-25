@@ -37,6 +37,8 @@ module Labimotion
         # layer = object.properties[key]
         field_sample_molecules = object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].select { |ss| Labimotion::FieldType::DRAG_ALL.include?(ss['type']) }
         field_sample_molecules.each do |field|
+          next unless field['value'].is_a?(Hash)
+
           idx = object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].index(field)
           sid = field.dig('value') != '' && field.dig('value', 'el_id')
           next unless sid.present?

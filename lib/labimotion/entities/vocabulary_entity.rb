@@ -1,9 +1,9 @@
 # frozen_string_literal: true
-#
+
 require 'labimotion/entities/application_entity'
 module Labimotion
   # Dataset entity
-  class VocabularyEntity < ApplicationEntity
+  class VocabularyEntity < Labimotion::ApplicationEntity
     expose :id, :identifier, :name, :label, :field_type, :opid, :term_id,
            :field_id, :properties, :source, :source_id, :layer_id
     expose :voc do |obj|

@@ -10,15 +10,18 @@ module Labimotion
     expose! :desc
     expose! :icon_name
     expose! :klass_prefix
-    expose! :klass_name
+    expose :klass_name do |obj|
+      obj[:name] || ''
+    end
     expose! :label
     expose! :identifier
     expose! :version
     expose! :released_at
-    expose! :properties_release, if: :displayed
+    expose :properties_release, **DISPLAYED_IN_LIST_CONDITION, anonymize_with: {}
+    expose :metadata, **DISPLAYED_IN_LIST_CONDITION, anonymize_with: {}
     expose :element_klass do |obj|
       if obj[:element_klass_id]
-        { :label => obj.element_klass.label, :icon_name => obj.element_klass.icon_name }
+        { label: obj.element_klass.label, icon_name: obj.element_klass.icon_name, id: obj.element_klass_id }
       else
         {}
       end

@@ -1,14 +1,14 @@
 # frozen_string_literal: true
-#
+
 require 'labimotion/entities/application_entity'
 module Labimotion
-  # GenericKlassEntity
-  class GenericKlassEntity < ApplicationEntity
-    expose :id, :uuid, :label, :desc, :properties_template, :properties_release, :is_active, :version,
-          :place, :released_at, :identifier, :sync_time, :created_by, :updated_by, :created_at, :updated_at
-    expose_timestamps(timestamp_fields: [:released_at])
-    expose_timestamps(timestamp_fields: [:created_at])
-    expose_timestamps(timestamp_fields: [:updated_at])
-    expose_timestamps(timestamp_fields: [:sync_time])
+  class GenericKlassEntity < Labimotion::ApplicationEntity
+    expose :id, :uuid, :label, :desc, :is_active, :version, :place
+    expose :released_at, :identifier, :sync_time
+
+    expose :properties_template, **DISPLAYED_IN_LIST_CONDITION, anonymize_with: {}
+    expose :properties_release, **DISPLAYED_IN_LIST_CONDITION, anonymize_with: {}
+    expose :metadata, **DISPLAYED_IN_LIST_CONDITION, anonymize_with: {}
+    expose_timestamps(timestamp_fields: %i[released_at created_at updated_at sync_time])
   end
 end

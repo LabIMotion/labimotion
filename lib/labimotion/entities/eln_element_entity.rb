@@ -1,9 +1,9 @@
 # frozen_string_literal: true
-#
+
 require 'labimotion/entities/application_entity'
 module Labimotion
   ## ElementEntity
-  class ElnElementEntity < ApplicationEntity
+  class ElnElementEntity < Labimotion::ApplicationEntity
     with_options(anonymize_below: 0) do
       expose! :created_by
       expose! :id
@@ -30,6 +30,8 @@ module Labimotion
           ss['type'] == Labimotion::FieldType::DRAG_SAMPLE || ss['type'] == Labimotion::FieldType::DRAG_MOLECULE
         end
         field_sample_molecules.each do |field|
+          next unless field['value'].is_a?(Hash)
+
           idx = object.properties[Labimotion::Prop::LAYERS][key][Labimotion::Prop::FIELDS].index(field)
           sid = field.dig('value', 'el_id')
           next unless sid.present?

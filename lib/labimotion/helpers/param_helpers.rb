@@ -13,6 +13,7 @@ module Labimotion
       optional :desc, type: String, desc: 'Klass desc'
       optional :klass_prefix, type: String, desc: 'Klass klass_prefix'
       optional :icon_name, type: String, desc: 'Klass icon_name'
+      optional :metadata, type: Hash, desc: 'Klass metadata'
       requires :properties_template, type: Hash, desc: 'Klass template'
       optional :properties_release, type: Hash, desc: 'Klass release'
       optional :released_at, type: DateTime, desc: 'Klass released_at'
@@ -29,6 +30,7 @@ module Labimotion
       requires :klass_prefix, type: String, desc: 'Element Klass Short Label Prefix'
       optional :icon_name, type: String, desc: 'Element Klass Icon Name'
       optional :desc, type: String, desc: 'Element Klass Desc'
+      optional :metadata, type: Hash, desc: 'Element Klass metadata'
       optional :properties_template, type: Hash, desc: 'Element Klass properties template'
     end
 
@@ -47,6 +49,7 @@ module Labimotion
       requires :name, type: String
       optional :properties, type: Hash
       optional :properties_release, type: Hash
+      optional :metadata, type: Hash
       optional :collection_id, type: Integer
       requires :container, type: Hash
       optional :user_labels, type: Array
@@ -58,6 +61,7 @@ module Labimotion
       optional :name, type: String
       requires :properties, type: Hash
       optional :properties_release, type: Hash
+      optional :metadata, type: Hash
       requires :container, type: Hash
       optional :user_labels, type: Array
       optional :segments, type: Array, desc: 'Segments'
@@ -67,6 +71,7 @@ module Labimotion
     params :upload_segment_klass_params do
       requires :label, type: String, desc: 'Klass label'
       optional :desc, type: String, desc: 'Klass desc'
+      optional :metadata, type: Hash, desc: 'Klass metadata'
       requires :properties_template, type: Hash, desc: 'Klass template'
       optional :properties_release, type: Hash, desc: 'Klass release'
       optional :released_at, type: DateTime, desc: 'Klass released_at'
@@ -93,6 +98,7 @@ module Labimotion
       requires :element_klass, type: Integer, desc: 'Element Klass Id'
       optional :desc, type: String, desc: 'Segment Klass Desc'
       optional :place, type: String, desc: 'Segment Klass Place', default: '100'
+      optional :metadata, type: Hash, desc: 'Klass metadata'
       optional :properties_template, type: Hash, desc: 'Element Klass properties template'
     end
 
@@ -133,6 +139,12 @@ module Labimotion
       requires :voc, type: Hash, desc: 'vocabulary references'
       optional :select_options, type: Hash, desc: 'selections'
       optional :option_layers, type: String, desc: 'option'
+    end
+
+    params :table_xlsx_params do
+      requires :klass, type: String, desc: 'Generic Type', values: %w[Element Segment]
+      requires :layer_id, type: String, desc: 'layer identifier'
+      requires :field_id, type: String, desc: 'field identifier'
     end
   end
 end

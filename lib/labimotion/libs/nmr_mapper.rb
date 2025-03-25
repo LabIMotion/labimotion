@@ -4,6 +4,7 @@ require 'labimotion/libs/dataset_builder'
 require 'labimotion/version'
 require 'labimotion/utils/mapper_utils'
 require 'labimotion/utils/utils'
+require 'labimotion/helpers/converter_helpers'
 
 module Labimotion
   ## NmrMapper
@@ -61,6 +62,7 @@ module Labimotion
 
       def update_ds(_cid, obj, current_user, element)
         dataset = obj[:dataset]
+        process_general_description(obj, current_user, element)
         dataset.properties = process_prop(obj, current_user, element)
         dataset.save!
       end
@@ -104,6 +106,17 @@ module Labimotion
           update_param_field(new_prop, field_path, param_key, metadata)
         end
         new_prop
+      end
+
+      def process_general_description(obj, current_user, element)
+        container = obj[:dataset]&.element
+        return unless container.present?
+
+        dt = obj[:metadata]&.dig('DATE')
+        date = Labimotion::MapperUtils.format_timestamp(dt, 'date') if dt.present?
+        time = Labimotion::MapperUtils.format_timestamp(dt, 'time') if dt.present?
+
+        Labimotion::ConverterHelpers.update_general_description(container, current_user, date: date, time: time)
       end
 
       def process_prop(obj, current_user, element)

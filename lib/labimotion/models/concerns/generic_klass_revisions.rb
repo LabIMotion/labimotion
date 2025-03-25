@@ -33,7 +33,7 @@ module Labimotion
         properties_release: properties_release,
         released_at: DateTime.now,
         updated_by: current_user&.id,
-        released_by: current_user&.id,
+        released_by: current_user&.id
       }
 
       self.update!(klass_attributes)
@@ -44,7 +44,8 @@ module Labimotion
         version: version,
         created_by: updated_by,
         properties_release: properties_release,
-        released_at: released_at
+        released_at: released_at,
+        metadata: metadata || {}
       }
       attributes["#{self.class.name.underscore.split('/').last}_id"] = id
       "#{self.class.name}esRevision".constantize.create(attributes)
