@@ -12,10 +12,11 @@ module Labimotion
     end
 
     def self.elements_search(params, current_user, c_id, dl)
-      collection = Collection.belongs_to_or_shared_by(current_user.id, current_user.group_ids).find(c_id)
+      collection = Collection.accessible_for(current_user).find(c_id)
       element_scope = Labimotion::Element.joins(:collections_elements).where('collections_elements.collection_id = ?', collection.id).joins(:element_klass).where('element_klasses.id = elements.element_klass_id AND element_klasses.name = ?', params[:selection][:genericElName])
       element_scope = element_scope.where('elements.name like (?)', "%#{params[:selection][:searchName]}%") if params[:selection][:searchName].present?
-      element_scope = element_scope.where('elements.short_label like (?)', "%#{params[:selection][:searchShowLabel]}%") if params[:selection][:searchShowLabel].present?
+      element_scope = element_scope.where('elements.short_label like (?)', "%#{params[:selection][:searchShowLabel]}%")
+      if params[:selection][:searchShowLabel].present?
       if params[:selection][:searchProperties].present?
         unique_layers = Labimotion::Search.unique_element_layers(params[:selection] && params[:selection][:genericKlassId])
         params[:selection][:searchProperties] && params[:selection][:searchProperties][:layers] && params[:selection][:searchProperties][:layers].keys.each do |lk|
@@ -97,7 +98,7 @@ module Labimotion
     def self.samples_search(c_id = @c_id)
       sqls = []
       sps = params[:selection][:searchProperties]
-      collection = Collection.belongs_to_or_shared_by(current_user.id, current_user.group_ids).find(c_id)
+      collection = Collection.accessible_for(current_user).find(c_id)
       element_scope = Sample.joins(:collections_samples).where('collections_samples.collection_id = ?', collection.id)
       return element_scope if sps.empty?
 

@@ -88,10 +88,10 @@ module Labimotion
       element = Labimotion::Element.new(attributes)
 
       if params[:collection_id]
-        collection = current_user.collections.find(params[:collection_id])
+        collection = Collection.accessible_for(current_user).find(params[:collection_id])
         element.collections << collection
       end
-      all_coll = Collection.get_all_collection_for_user(current_user.id)
+      all_coll = Collection.get_all_collection_for_user(current_user)
       element.collections << all_coll
       element.save!
       element.properties = update_sample_association(params[:properties], current_user, element)
@@ -246,38 +246,32 @@ module Labimotion
     end
 
     def list_serialized_elements(params, current_user)
-      collection_id =
-      if params[:collection_id]
-        Collection
-          .belongs_to_or_shared_by(current_user.id, current_user.group_ids)
-          .find_by(id: params[:collection_id])&.id
-      elsif params[:sync_collection_id]
-        current_user
-          .all_sync_in_collections_users
-          .find_by(id: params[:sync_collection_id])&.collection&.id
-      end
-
       scope =
-      if collection_id
-        Labimotion::Element
-          .joins(:element_klass, :collections_elements)
-          .where(
-            element_klasses: { name: params[:el_type] },
-            collections_elements: { collection_id: collection_id },
-          ).includes(:tag, collections: :sync_collections_users)
-      else
-        Labimotion::Element.none
-      end
+        if params[:collection_id]
+          begin
+            Collection.accessible_for(current_user)
+                      .find(params[:collection_id]).elements
+                      .joins(:element_klass)
+                      .where(element_klasses: { name: params[:el_type] })
+          rescue ActiveRecord::RecordNotFound
+            Labimotion::Element.none
+          end
+        else
+          Labimotion::Element.joins(:collections, :element_klass)
+                             .where(collections: { user_id: current_user.id })
+                             .where(element_klasses: { name: params[:el_type] })
+                             .distinct
+        end
 
       ## TO DO: refactor labimotion
       from = params[:from_date]
       to = params[:to_date]
       by_created_at = params[:filter_created_at] || false
+
       if params[:sort_column]&.include?('.')
         layer, field = params[:sort_column].split('.')
-
         element_klass = Labimotion::ElementKlass.find_by(name: params[:el_type])
-        allowed_fields = element_klass.properties_release.dig(Labimotion::Prop::LAYERS, layer, Labimotion::Prop::FIELDS)&.pluck('field') || []
+        allowed_fields = element_klass&.properties_release&.dig(Labimotion::Prop::LAYERS, layer, Labimotion::Prop::FIELDS)&.pluck('field') || []
 
         if field.in?(allowed_fields)
           query = ActiveRecord::Base.sanitize_sql(
