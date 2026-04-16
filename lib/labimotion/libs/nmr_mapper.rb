@@ -136,7 +136,7 @@ module Labimotion
         if result[:is_bagit]
           handle_bagit_result(att, id, current_user)
         elsif invalid_metadata?(result)
-          Labimotion::ConState::NONE
+          Labimotion::ConState::WAIT
         else
           handle_nmr_result(result, att, current_user)
         end
