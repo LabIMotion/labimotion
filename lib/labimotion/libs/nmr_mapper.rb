@@ -34,7 +34,7 @@ module Labimotion
         return Labimotion::ConState::NONE if att.nil?
 
         result = process(att)
-        return Labimotion::ConState::NONE if result.nil?
+        return Labimotion::ConState::WAIT if result.nil?
 
         handle_process_result(result, att, id, current_user)
       end
