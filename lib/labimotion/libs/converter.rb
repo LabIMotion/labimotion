@@ -125,7 +125,7 @@ module Labimotion
         tmp_file.rewind
 
         filename = oat.filename
-        name = "#{File.basename(filename, '.*')}.zip"
+        name = "#{File.basename(filename, '.*')}#{File.extname(filename) == '.zip' ? '.bagit.zip' : '.zip'}"
         att = Attachment.new(
           filename: name,
           file_path: tmp_file.path,
