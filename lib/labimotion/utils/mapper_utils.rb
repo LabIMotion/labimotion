@@ -46,6 +46,22 @@ module Labimotion
         nil
       end
 
+      def check_if_bagit(zip_file_url)
+        return nil if zip_file_url.nil?
+        Zip::File.open(zip_file_url) do |zip_file|
+          zip_file.each do |entry|
+            return { is_bagit: true, metadata: nil } if bagit_metadata_file?(entry)
+          end
+        end
+
+      rescue Zip::Error => e
+        Rails.logger.error "Zip file error: #{e.message}"
+        nil
+      rescue StandardError => e
+        Rails.logger.error "Unexpected error extracting metadata: #{e.message}"
+        nil
+      end
+
       def extract_parameters(file_content, parameter_names)
         return nil if file_content.blank? || parameter_names.blank?
 

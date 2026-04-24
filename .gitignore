@@ -40,3 +40,4 @@ build-iPhoneSimulator/
 
 # Ignore gem files
 /*.gem
+/.idea/

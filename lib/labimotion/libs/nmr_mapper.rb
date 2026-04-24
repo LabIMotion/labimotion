@@ -41,9 +41,10 @@ module Labimotion
 
       def process(att)
         config = Labimotion::MapperUtils.load_brucker_config
-        return if config.nil?
-
         attacher = att&.attachment_attacher
+        return Labimotion::MapperUtils.check_if_bagit(attacher&.file&.url) if config.nil?
+
+
         extracted_data = Labimotion::MapperUtils.extract_data_from_zip(attacher&.file&.url, config['sourceMap'])
         return if extracted_data.nil?
 
