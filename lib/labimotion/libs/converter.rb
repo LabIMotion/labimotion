@@ -319,6 +319,37 @@ module Labimotion
       res
     end
 
+    def self.test_conversions(tmpfile, format)
+      res = {}
+      File.open(tmpfile.path, 'r') do |file|
+        body = { file: file, format: format }
+        response = HTTParty.post(
+          uri('conversions'),
+          basic_auth: auth,
+          body: body,
+          timeout: timeout,
+        )
+        res = response.parsed_response
+      end
+      res
+    end
+
+    def self.restore(profile_id, version, hard)
+      body = { hard: hard }
+      response = HTTParty.post(
+        uri("profiles/restore/#{profile_id}/#{version}"),
+        headers: {
+          "Content-Type" => "application/json"
+        },
+        basic_auth: auth,
+        body: body.to_json,
+        timeout: timeout,
+      )
+      res = response.parsed_response
+
+      res
+    end
+
     def self.metadata(id, current_user)
       att = Attachment.find(id)
       return if att.nil? || att.attachable_id.nil? || att.attachable_type != Labimotion::Prop::CONTAINER

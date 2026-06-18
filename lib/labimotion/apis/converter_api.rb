@@ -2,39 +2,103 @@
 
 module Labimotion
   class ConverterAPI < Grape::API
+    helpers Labimotion::DatasetHelpers
     helpers do
+      def load_converter_config!
+        @conf = Rails.configuration.converter&.url
+        @profile = Rails.configuration.converter&.profile
+        error!(406) unless @conf && @profile
+      end
+
+      def require_converter_admin!
+        error!(401) unless current_user.profile&.data&.fetch('converter_admin', false)
+      end
+
+      def uploaded_file
+        params[:file].is_a?(Array) ? params[:file][0] : params[:file]
+      end
     end
+
     resource :converter do
-      resource :profiles do
-        before do
-          @conf = Rails.configuration.try(:converter).try(:url)
-          @profile = Rails.configuration.try(:converter).try(:profile)
-          error!(406) unless @conf && @profile
+      resource :datasets do
+        desc 'list Generic Dataset Klass'
+        get do
+          list = klass_list(true, false)
+          list.map do |kl|
+            pr = kl.properties_release
+            pr['name'] = kl.label
+            pr['ols'] = kl.ols_term_id
+            pr
+          end || []
         end
-        desc 'fetch profiles'
+      end
+
+      resource :datasets_units do
+        desc 'list Generic Dataset Klass'
+        get do
+          Labimotion::Units::FIELDS
+        end
+      end
+
+      resource :profiles do
+
+        before do
+          load_converter_config!
+        end
+
+        desc 'Fetch profiles (no admin required)'
         get do
           profiles = Labimotion::Converter.fetch_profiles
           { profiles: profiles, client: @profile }
         end
-        desc 'create profile'
+
+        desc 'Create profile'
         post do
+          require_converter_admin!
           Labimotion::Converter.create_profile(params)
         end
-        desc 'update profile'
+
         route_param :id do
+          desc 'Update profile'
           put do
+            require_converter_admin!
             Labimotion::Converter.update_profile(params)
           end
-        end
-        desc 'delete profile'
-        route_param :id do
+
+          desc 'Delete profile'
           delete do
-            id = params[:id]
-            Labimotion::Converter.delete_profile(id)
+            require_converter_admin!
+            Labimotion::Converter.delete_profile(params[:id])
+          end
+        end
+
+        resource :restore do
+          route_param :profile_id,
+                      requirements: {
+                        profile_id: /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/
+                      } do
+
+            route_param :profile_version,
+                        requirements: {
+                          profile_version: /\d+\.\d+/
+                        } do
+              get do
+                {test_version: params[:profile_id], version: params[:profile_version]}
+              end
+              desc 'Restore profile'
+              post do
+                require_converter_admin!
+
+                Labimotion::Converter.restore(
+                  params[:profile_id],
+                  params[:profile_version],
+                  params[:hard]
+                )
+              end
+            end
           end
         end
       end
-
       resource :structure do
         helpers do
           def convert_structure(molfile)
@@ -66,10 +130,8 @@ module Labimotion
 
       resource :options do
         before do
-          error!(401) unless current_user.profile&.data['converter_admin'] == true
-          @conf = Rails.configuration.try(:converter).try(:url)
-          @profile = Rails.configuration.try(:converter).try(:profile)
-          error!(406) unless @conf && @profile
+          load_converter_config!
+          require_converter_admin!
         end
         desc 'fetch options'
         get do
@@ -80,18 +142,32 @@ module Labimotion
 
       resource :tables do
         before do
-          error!(401) unless current_user.profile&.data['converter_admin'] == true
-          @conf = Rails.configuration.try(:converter).try(:url)
-          @profile = Rails.configuration.try(:converter).try(:profile)
-          error!(406) unless @conf && @profile
+          load_converter_config!
+          require_converter_admin!
         end
         desc 'create tables'
         post do
-          res = Labimotion::Converter.create_tables(params[:file][0]['tempfile']) unless params[:file].empty?
-          res['metadata']['file_name'] = params[:file][0]['filename']
+          file = uploaded_file
+          res = Labimotion::Converter.create_tables(file['tempfile']) unless file.nil?
+          res['metadata']['file_name'] = file['filename']
           res
         end
       end
+
+      resource :conversions do
+        before do
+          load_converter_config!
+          require_converter_admin!
+        end
+        desc 'convert file'
+        post do
+          file = uploaded_file
+          res = Labimotion::Converter.test_conversions(file['tempfile'], params[:format]) unless file.nil?
+          res
+        end
+      end
+
     end
   end
 end
+
