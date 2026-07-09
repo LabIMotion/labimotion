@@ -246,14 +246,22 @@ module Labimotion
       dsr.each do |ds|
         layer = layers[ds[:layer]]
         next if layer.blank? || layer[Labimotion::Prop::FIELDS].blank?
+        is_unit = ds[:field].start_with?(Prop::CONVERTER_FIELD_UINT_PREFIX)
+        next if is_unit && ds[:value].nil?
 
-        fields = layer[Labimotion::Prop::FIELDS].select{ |f| f['field'] == ds[:field] }
+        field_name = ds[:field].delete_prefix(Prop::CONVERTER_FIELD_UINT_PREFIX)
+
+        fields = layer[Labimotion::Prop::FIELDS].select{ |f| f['field'] == field_name }
         fi = fields&.first
         next if fi.blank?
 
         idx = layer[Labimotion::Prop::FIELDS].find_index(fi)
-        fi['value'] = ds[:value]
-        fi['device'] = ds[:device] || ds[:value]
+        if is_unit
+          fi['value_system'] = ds[:value]
+        else
+          fi['value'] = ds[:value]
+          fi['device'] = ds[:device] || ds[:value]
+        end
         new_prop[Labimotion::Prop::LAYERS][ds[:layer]][Labimotion::Prop::FIELDS][idx] = fi
       end
       element = Container.find(dataset.element_id)&.root_element
