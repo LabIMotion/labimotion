@@ -125,7 +125,7 @@ module Labimotion
         tmp_file.rewind
 
         filename = oat.filename
-        name = "#{File.basename(filename, '.*')}.zip"
+        name = "#{File.basename(filename, '.*')}#{File.extname(filename) == '.zip' ? '.bagit.zip' : '.zip'}"
         att = Attachment.new(
           filename: name,
           file_path: tmp_file.path,
@@ -246,14 +246,22 @@ module Labimotion
       dsr.each do |ds|
         layer = layers[ds[:layer]]
         next if layer.blank? || layer[Labimotion::Prop::FIELDS].blank?
+        is_unit = ds[:field].start_with?(Prop::CONVERTER_FIELD_UINT_PREFIX)
+        next if is_unit && ds[:value].nil?
 
-        fields = layer[Labimotion::Prop::FIELDS].select{ |f| f['field'] == ds[:field] }
+        field_name = ds[:field].delete_prefix(Prop::CONVERTER_FIELD_UINT_PREFIX)
+
+        fields = layer[Labimotion::Prop::FIELDS].select{ |f| f['field'] == field_name }
         fi = fields&.first
         next if fi.blank?
 
         idx = layer[Labimotion::Prop::FIELDS].find_index(fi)
-        fi['value'] = ds[:value]
-        fi['device'] = ds[:device] || ds[:value]
+        if is_unit
+          fi['value_system'] = ds[:value]
+        else
+          fi['value'] = ds[:value]
+          fi['device'] = ds[:device] || ds[:value]
+        end
         new_prop[Labimotion::Prop::LAYERS][ds[:layer]][Labimotion::Prop::FIELDS][idx] = fi
       end
       element = Container.find(dataset.element_id)&.root_element
@@ -316,6 +324,37 @@ module Labimotion
         )
         res = response.parsed_response
       end
+      res
+    end
+
+    def self.test_conversions(tmpfile, format)
+      res = {}
+      File.open(tmpfile.path, 'r') do |file|
+        body = { file: file, format: format }
+        response = HTTParty.post(
+          uri('conversions'),
+          basic_auth: auth,
+          body: body,
+          timeout: timeout,
+        )
+        res = response.parsed_response
+      end
+      res
+    end
+
+    def self.restore(profile_id, version, hard)
+      body = { hard: hard }
+      response = HTTParty.post(
+        uri("profiles/restore/#{profile_id}/#{version}"),
+        headers: {
+          "Content-Type" => "application/json"
+        },
+        basic_auth: auth,
+        body: body.to_json,
+        timeout: timeout,
+      )
+      res = response.parsed_response
+
       res
     end
 

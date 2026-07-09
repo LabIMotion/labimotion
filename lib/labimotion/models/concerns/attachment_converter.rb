@@ -31,6 +31,7 @@ module Labimotion
         case con_state
         when Labimotion::ConState::NMR
           self.con_state = Labimotion::NmrMapper.process_ds(id, current_user)
+          return exec_converter if con_state == Labimotion::ConState::WAIT
           update_column(:con_state, con_state)
         when Labimotion::ConState::WAIT
           self.con_state = Labimotion::Converter.jcamp_converter(id, current_user)
