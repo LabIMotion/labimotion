@@ -29,7 +29,10 @@ module Labimotion
       dsr = []
       ols = nil
       Zip::File.open(att.attachment_attacher.file.url) do |zip_file|
-        res = Labimotion::Converter.collect_metadata(zip_file, current_user) if att.filename.split('.')&.last == 'zip'
+        if att.filename.split('.')&.last == 'zip'
+          res = Labimotion::Converter.collect_metadata(zip_file, current_user)
+          Labimotion::Converter.collect_reaction_converter_metadata(att, zip_file)
+        end
         ols = res[:o] unless res&.dig(:o).nil?
         dsr.push(res[:d]) unless res&.dig(:d).nil?
       end
@@ -93,6 +96,33 @@ module Labimotion
       { a: oa, f: folder }
     end
 
+    def self.collect_reaction_converter_metadata(oat, zip_file)
+      zip_file.each do |entry|
+        next unless entry.name == 'metadata/reaction_variation.json'
+
+        # Create temp file
+        tmp_file = Tempfile.new(['reaction_variation', '.json'])
+        tmp_file.binmode
+
+        # Write ZIP entry content into temp file
+        entry.extract(tmp_file.path) { true }
+
+        # Create attachment
+        att = Attachment.create!(
+          filename: 'reaction_variation.json',
+          file_path: tmp_file.path,
+          content_type: 'application/json',
+          attachable_id: oat.attachable_id,
+          attachable_type: 'Container',
+          con_state: Labimotion::ConState::CONVERTED,
+          created_by: oat.created_by,
+          created_for: oat.created_for
+        )
+
+        att.save! if att.valid?
+      end
+    end
+
     def self.collect_metadata(zip_file, current_user = {}) # rubocop: disable Metrics/PerceivedComplexity
       dsr = []
       ols = nil
@@ -125,7 +155,7 @@ module Labimotion
         tmp_file.rewind
 
         filename = oat.filename
-        name = "#{File.basename(filename, '.*')}.zip"
+        name = "#{File.basename(filename, '.*')}#{File.extname(filename) == '.zip' ? '.bagit.zip' : '.zip'}"
         att = Attachment.new(
           filename: name,
           file_path: tmp_file.path,

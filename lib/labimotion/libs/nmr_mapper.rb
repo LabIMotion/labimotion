@@ -34,16 +34,17 @@ module Labimotion
         return Labimotion::ConState::NONE if att.nil?
 
         result = process(att)
-        return Labimotion::ConState::NONE if result.nil?
+        return Labimotion::ConState::WAIT if result.nil?
 
         handle_process_result(result, att, id, current_user)
       end
 
       def process(att)
         config = Labimotion::MapperUtils.load_brucker_config
-        return if config.nil?
-
         attacher = att&.attachment_attacher
+        return Labimotion::MapperUtils.check_if_bagit(attacher&.file&.url) if config.nil?
+
+
         extracted_data = Labimotion::MapperUtils.extract_data_from_zip(attacher&.file&.url, config['sourceMap'])
         return if extracted_data.nil?
 
@@ -136,7 +137,7 @@ module Labimotion
         if result[:is_bagit]
           handle_bagit_result(att, id, current_user)
         elsif invalid_metadata?(result)
-          Labimotion::ConState::NONE
+          Labimotion::ConState::WAIT
         else
           handle_nmr_result(result, att, current_user)
         end
