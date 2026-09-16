@@ -16,9 +16,16 @@ Gem::Specification.new do |spec|
     'rubygems_mfa_required' => 'true'
   }
   spec.license = 'AGPL-3.0'
-  spec.files         = Dir['lib/**/*.rb', 'labimotion.rb', 'lib/**/*.json']
+  spec.files         = Dir[
+    'lib/**/*.{rb,json}',
+    'labimotion.rb',
+    'CHANGELOG.md',
+    'LICENSE',
+    'README.md'
+  ]
   spec.require_paths = ['lib']
-  spec.required_ruby_version = '>= 2.7', '< 3.4'
+  spec.required_ruby_version = ['>= 2.7', '< 3.4']
   spec.add_dependency 'caxlsx', '~> 4.0'
   spec.add_dependency 'rails', '>= 6.1', '< 8.0'
+  spec.add_dependency 'roo', '~> 2.10'
 end

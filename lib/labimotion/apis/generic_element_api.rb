@@ -179,10 +179,11 @@ module Labimotion
       end
 
       namespace :klass_revisions do
-        desc 'list Generic Element Revisions'
+        desc 'list Generic Klass Revisions'
         params do
           requires :id, type: Integer, desc: 'Generic Element Klass Id'
           requires :klass, type: String, desc: 'Klass', values: %w[ElementKlass SegmentKlass DatasetKlass]
+          optional :limit, type: Integer, default: 10, desc: 'Max revisions returned'
         end
         get do
           list = list_klass_revisions(params)
@@ -197,6 +198,7 @@ module Labimotion
         desc 'list Generic Element Revisions'
         params do
           requires :id, type: Integer, desc: 'Generic Element Id'
+          optional :limit, type: Integer, default: 10, desc: 'Max revisions returned'
         end
         get do
           list = element_revisions(params)
@@ -241,14 +243,15 @@ module Labimotion
       end
 
       namespace :segment_revisions do
-        desc 'list Generic Element Revisions'
+        desc 'list Generic Segment Revisions'
         params do
           optional :id, type: Integer, desc: 'Generic Element Id'
+          optional :limit, type: Integer, default: 10, desc: 'Max revisions returned'
         end
         get do
           klass = Labimotion::Segment.find(params[:id])
           list = klass.segments_revisions unless klass.nil?
-          present list&.order(created_at: :desc)&.limit(10), with: Labimotion::SegmentRevisionEntity, root: 'revisions'
+          present list&.order(created_at: :desc)&.limit(params[:limit]), with: Labimotion::SegmentRevisionEntity, root: 'revisions'
         rescue StandardError => e
           Labimotion.log_exception(e, current_user)
           []
@@ -429,7 +432,6 @@ module Labimotion
       desc 'Return serialized elements of current user'
       params do
         optional :collection_id, type: Integer, desc: 'Collection id'
-        optional :sync_collection_id, type: Integer, desc: 'SyncCollectionsUser id'
         optional :el_type, type: String, desc: 'element klass name'
         optional :from_date, type: Integer, desc: 'created_date from in ms'
         optional :to_date, type: Integer, desc: 'created_date to in ms'

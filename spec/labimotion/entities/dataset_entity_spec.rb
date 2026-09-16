@@ -12,7 +12,7 @@ RSpec.describe Labimotion::DatasetEntity do
   # Helper method to format timestamps consistently with the actual eln_timestamp formatter
   def format_timestamp(datetime_string)
     datetime = DateTime.parse(datetime_string)
-    datetime.present? ? datetime.strftime('%Y-%m-%d %H:%M:%S %Z') : nil
+    datetime.present? ? datetime.strftime('%Y-%m-%dT%H:%M:%S%z') : nil
   end
 
   let(:dataset_klass) do

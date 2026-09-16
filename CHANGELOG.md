@@ -1,5 +1,20 @@
 # LabIMotion Changelog
 
+## [2.3.0]
+> 2026-09-16
+
+* Features and enhancements:
+  * Element variations can be exported to and imported from Excel.
+  * The exported sheet carries the grid's grouped header -- group, sub-group and field rows, merged as the grid draws them -- above the hidden key and unit rows. Workbooks from the earlier single-row header still import.
+  * Import merges rows by uuid, so a sheet only updates the columns it carries; a row with a blank `Row ID` is added as a new variation.
+  * A cell holding anything else is cleared with a warning rather than stored as text, which also cleans up text those columns already hold.
+  * Import warnings name the cell they came from (`Cell I6: ...`), so the user can go straight to it in the spreadsheet.
+  * MTT assay requests and outputs: creation, listing, update and deletion of requests, outputs and single results, plus public endpoints for downloading and uploading app data.
+  * DOI reservation, release and DataCite XML generation for released templates, and an endpoint listing the released versions of a template.
+  * Wellplates can be looked up by generic element, and users can be listed by keyword or fetched by id.
+  * Conversions accept more input and the unit definitions were extended.
+* Dependencies:
+  * Added `roo` (~> 2.10) for reading the uploaded workbook.
 
 ## [2.1.0]
 > 2025-02-08
@@ -69,7 +84,7 @@
   - Migrated utility functions to pureUtils for better organization.
   - Node.js version upgrade.
   - Dependency upgrades and test coverage improvements.
-    
+
 
 ## [2.0.0]
 > 2025-03-25

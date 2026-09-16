@@ -9,6 +9,7 @@ group :development, :test do
   gem 'byebug', platforms: %i[mri mingw x64_mingw]
   gem 'grape'
   gem 'httparty'
+  gem 'nokogiri', '>= 1.19.3' if RUBY_VERSION >= '3.2'
   gem 'rack-test'
   gem 'rspec', '~> 3.13'
   gem 'rubyzip', '~> 2.3'

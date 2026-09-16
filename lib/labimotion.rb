@@ -27,6 +27,12 @@ module Labimotion
   autoload :ExporterAPI, 'labimotion/apis/exporter_api'
   autoload :StandardLayerAPI, 'labimotion/apis/standard_layer_api'
   autoload :VocabularyAPI, 'labimotion/apis/vocabulary_api'
+  autoload :UserAPI, 'labimotion/apis/user_api'
+  autoload :MttAPI, 'labimotion/apis/mtt_api'
+  autoload :ElementVariationAPI, 'labimotion/apis/element_variation_api'
+  autoload :LabimotionDoiAPI, 'labimotion/apis/labimotion_doi_api'
+  autoload :LabimotionTemplateBrowseAPI, 'labimotion/apis/labimotion_template_browse_api'
+  autoload :WellplateAPI, 'labimotion/apis/wellplate_api'
 
   ######## Entities
   autoload :PropertiesEntity, 'labimotion/entities/properties_entity'
@@ -49,6 +55,9 @@ module Labimotion
   autoload :SegmentRevisionEntity, 'labimotion/entities/segment_revision_entity'
   ## autoload :DatasetRevisionEntity, 'labimotion/entities/dataset_revision_entity'
   autoload :VocabularyEntity, 'labimotion/entities/vocabulary_entity'
+  autoload :UserEntity, 'labimotion/entities/user_entity'
+  autoload :ElementVariationEntity, 'labimotion/entities/element_variation_entity'
+  autoload :LabimotionTemplateDoiEntity, 'labimotion/entities/labimotion_template_doi_entity'
 
   ######## Helpers
   autoload :GenericHelpers, 'labimotion/helpers/generic_helpers'
@@ -63,6 +72,13 @@ module Labimotion
   autoload :RepositoryHelpers, 'labimotion/helpers/repository_helpers'
   autoload :VocabularyHelpers, 'labimotion/helpers/vocabulary_helpers'
 
+  ######## Usecases
+  autoload :TemplateDoiHelpers, 'labimotion/usecases/template_doi_helpers'
+  autoload :BuildTemplateDoiXml, 'labimotion/usecases/build_template_doi_xml'
+  autoload :ReserveTemplateDoi, 'labimotion/usecases/reserve_template_doi'
+  autoload :ReleaseTemplateDoi, 'labimotion/usecases/release_template_doi'
+  autoload :UpdateTemplatePublicationMetadata, 'labimotion/usecases/update_template_publication_metadata'
+
   ######## Libs
   autoload :Converter, 'labimotion/libs/converter'
   autoload :DatasetBuilder, 'labimotion/libs/dataset_builder'
@@ -76,6 +92,10 @@ module Labimotion
   autoload :AttachmentHandler, 'labimotion/libs/attachment_handler'
   autoload :VocabularyHandler, 'labimotion/libs/vocabulary_handler'
   autoload :XlsxExporter, 'labimotion/libs/xlsx_exporter'
+  autoload :ElementVariationColumnSet, 'labimotion/libs/element_variation_column_set'
+  autoload :ElementVariationHeader, 'labimotion/libs/element_variation_header'
+  autoload :ExportElementVariations, 'labimotion/libs/export_element_variations'
+  autoload :ImportElementVariations, 'labimotion/libs/import_element_variations'
 
   ######## Utils
   autoload :Prop, 'labimotion/utils/prop'
@@ -108,17 +128,21 @@ module Labimotion
 
   autoload :ElementsSample, 'labimotion/models/elements_sample'
   autoload :ElementsElement, 'labimotion/models/elements_element'
+  autoload :ElementsWellplate, 'labimotion/models/elements_wellplate'
   autoload :CollectionsElement, 'labimotion/models/collections_element'
 
   autoload :StdLayer, 'labimotion/models/std_layer'
   autoload :StdLayersRevision, 'labimotion/models/std_layers_revision'
 
   autoload :DeviceDescription, 'labimotion/models/device_description'
+  autoload :DoseRespRequest, 'labimotion/models/dose_resp_request'
+  autoload :DoseRespOutput, 'labimotion/models/dose_resp_output'
   autoload :Reaction, 'labimotion/models/reaction'
   autoload :ResearchPlan, 'labimotion/models/research_plan'
   autoload :Sample, 'labimotion/models/sample'
   autoload :Screen, 'labimotion/models/screen'
   autoload :Wellplate, 'labimotion/models/wellplate'
+  autoload :ElementVariation, 'labimotion/models/element_variation'
 
   ######## Models/Concerns
   autoload :GenericKlassRevisions, 'labimotion/models/concerns/generic_klass_revisions'
@@ -126,6 +150,6 @@ module Labimotion
   autoload :ElementFetchable, 'labimotion/models/concerns/element_fetchable'
   autoload :Segmentable, 'labimotion/models/concerns/segmentable'
   autoload :Datasetable, 'labimotion/models/concerns/datasetable'
-  autoload :AttachmentConverter, 'labimotion/models/concerns/attachment_converter.rb'
+  autoload :AttachmentConverter, 'labimotion/models/concerns/attachment_converter'
   autoload :LinkedProperties, 'labimotion/models/concerns/linked_properties'
 end

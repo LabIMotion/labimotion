@@ -70,6 +70,37 @@ module Labimotion
         extracted_parameters
       end
 
+      # Extracts scalar values from Bruker array parameters such as
+      #   ##$D= (0..63)
+      #   0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.0002 ...
+      # where the values live on the line(s) following the header. The config maps
+      # each output key to an array name + index, e.g.
+      #   { "D1" => { "name" => "D", "index" => 1 } } => D1 = the 2nd value (here 1).
+      def extract_array_parameters(file_content, array_parameters)
+        return {} if file_content.blank? || array_parameters.blank?
+
+        lines = file_content.lines
+        extracted = {}
+        lines.each_with_index do |line, idx|
+          header = line.match(/^\s*##\$(?<name>[A-Za-z0-9_]+)\s*=\s*\(\s*\d+\s*\.\.\s*\d+\s*\)/)
+          next unless header
+
+          targets = array_parameters.select { |_key, cfg| cfg['name'] == header[:name] }
+          next if targets.empty?
+
+          values = collect_array_values(lines, idx + 1)
+          targets.each do |out_key, cfg|
+            value = values[cfg['index'].to_i]
+            extracted[out_key] = clean_value(value) if value.present?
+          end
+        end
+        extracted.compact_blank!
+        extracted
+      rescue StandardError => e
+        Rails.logger.error "Error extracting array parameters: #{e.message}"
+        {}
+      end
+
       def format_timestamp(timestamp_str, give_format = nil)
         return nil if timestamp_str.blank?
 
@@ -118,6 +149,21 @@ module Labimotion
         value
       end
 
+      # Collects whitespace-separated values from the line(s) following an array
+      # header, stopping at the next directive (line starting with '##') or a blank line.
+      def collect_array_values(lines, start_index)
+        values = []
+        index = start_index
+        while index < lines.length
+          stripped = lines[index].strip
+          break if stripped.empty? || stripped.start_with?('##')
+
+          values.concat(stripped.split(/\s+/))
+          index += 1
+        end
+        values
+      end
+
       def process_zip_file(zip_file_url, source_map)
         final_parameters = {}
 
@@ -137,23 +183,28 @@ module Labimotion
 
         zip_file.each do |entry|
           if source_file?(entry, source_config)
-            process_file_entry(entry, source_config['parameters'], final_parameters)
+            process_file_entry(entry, source_config, final_parameters)
           elsif bagit_metadata_file?(entry)
             return { is_bagit: true, metadata: nil }
           end
         end
       end
 
-      def process_file_entry(entry, parameters, final_parameters)
+      def process_file_entry(entry, source_config, final_parameters)
         file_content = entry.get_input_stream.read.force_encoding(Constants::File::ENCODING)
-        extracted_parameters = extract_parameters(file_content, parameters)
+        extracted_parameters = extract_parameters(file_content, source_config['parameters'])
         final_parameters.merge!(extracted_parameters) if extracted_parameters.present?
+
+        # Array parameters (e.g. D1 from acqus ##$D) are a fallback: they only fill a
+        # value that an earlier/higher-priority source (e.g. parm.txt D1) did not provide.
+        array_parameters = extract_array_parameters(file_content, source_config['arrayParameters'])
+        final_parameters.reverse_merge!(array_parameters) if array_parameters.present?
       end
 
       def invalid_source_config?(source_config)
         source_config.nil? ||
           source_config['file'].nil? ||
-          source_config['parameters'].nil?
+          (source_config['parameters'].nil? && source_config['arrayParameters'].nil?)
       end
 
       def source_file?(entry, source_config)

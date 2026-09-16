@@ -1,2 +1,80 @@
 {
+  "sourceMap": {
+    "sourceSelector": [
+      "parm",
+      "acqus",
+      "procs"
+    ],
+    "acqus": {
+      "file": "acqus",
+      "parameters": [
+        "DATE",
+        "INSTRUM",
+        "NS",
+        "NUC1",
+        "NUC2",
+        "PROBHD",
+        "PULPROG",
+        "SFO1",
+        "SFO2",
+        "SOLVENT",
+        "SW",
+        "TD",
+        "TE",
+        "TITLE"
+      ],
+      "arrayParameters": {
+        "D1": { "name": "D", "index": 1 }
+      }
+    },
+    "procs": {
+      "file": "pdata/1/procs",
+      "parameters": [
+        "SI",
+        "SF",
+        "WDW",
+        "LB",
+        "GB"
+      ]
+    },
+    "parm": {
+      "file": "pdata/1/parm.txt",
+      "parameters": [
+        "Date_",
+        "Time",
+        "INSTRUM",
+        "PROBHD",
+        "SOLVENT",
+        "TE",
+        "NS",
+        "PULPROG",
+        "TD",
+        "D1",
+        "SF",
+        "SFO1",
+        "SFO2",
+        "NUC1",
+        "NUC2"
+      ]
+    },
+    "parameters": {
+      "DATE": "general.date",
+      "D1": "set.done",
+      "INSTRUM": "instrument.instrument",
+      "NS": "set.ns",
+      "NUC1": "set.nucone",
+      "NUC2": "set.nuctwo",
+      "SF": "set.sf",
+      "SFO1": "set.sfoone",
+      "SFO2": "set.sfotwo",
+      "PROBHD": "equipment.probehead",
+      "PULPROG": "set.PULPROG",
+      "SOLVENT": "sample_preparation.solvent",
+      "TD": "set.td",
+      "TE": "set.temperature",
+      "TITLE": "software.Name",
+      "Version": "software.Version",
+      "Time": "general.time"
+    }
+  }
 }

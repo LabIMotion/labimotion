@@ -26,9 +26,10 @@ module Labimotion
           joins(collections: :user).where(collections: { user_id: user_id })
         )
 
-        # Shared (synced) records
+        # Shared records — collection_shares hangs off Collection, not off the
+        # element models themselves, so join through the collections association.
         shared = apply_filters.call(
-          joins(collections: :sync_collections_users).where(sync_collections_users: { user_id: user_id })
+          left_joins(collections: :collection_shares).where(collection_shares: { shared_with_id: user_id })
         )
 
         # Combine (remove duplicates), order, and limit

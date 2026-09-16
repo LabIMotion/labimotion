@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require 'date'
 require 'ostruct'
 require 'export_table'
 require 'labimotion/version'
@@ -125,25 +126,13 @@ module Labimotion
         val = files&.map { |file| "#{file['filename']} #{file['label']}" }&.join('\n')
         field_obj[:value] = val
       when Labimotion::FieldType::TABLE
-        field_obj[:is_table] = true
-        field_obj[:not_table] = false
-        tbl = []
-        ## tbl_idx = []
-        header = {}
-        sub_fields = field.fetch('sub_fields', [])
-        sub_fields.each_with_index do |sub_field, idx|
-          header["col#{idx}"] = sub_field['col_name']
-        end
-        tbl.push(header)
-        field.fetch('sub_values', []).each do |sub_val|
-          data = {}
-          sub_fields.each_with_index do |sub_field, idx|
-            data["col#{idx}"] = build_table_field(sub_val, sub_field)
-          end
-          tbl.push(data)
-        end
-        field_obj[:data] = tbl
-        # field_obj[:value] = 'this is a table'
+        field_obj[:is_table] = false
+        field_obj[:not_table] = true
+        field_obj[:value] = build_table_wordml(field)
+      when Labimotion::FieldType::DATETIME_RANGE
+        field_obj[:is_table] = false
+        field_obj[:not_table] = true
+        field_obj[:value] = build_datetime_range_wordml(field)
       when Labimotion::FieldType::INPUT_GROUP
         val = []
         field.fetch('sub_fields', [])&.each do |sub_field|
@@ -208,6 +197,243 @@ module Labimotion
       else
         sub_val[sub_field['id']]
       end
+    end
+
+    TABLE_BLANK_WORDML = '<w:p/>'
+    TABLE_BORDER = '<w:tblBorders>' \
+                   '<w:top w:val="single" w:sz="4" w:color="auto"/>' \
+                   '<w:left w:val="single" w:sz="4" w:color="auto"/>' \
+                   '<w:bottom w:val="single" w:sz="4" w:color="auto"/>' \
+                   '<w:right w:val="single" w:sz="4" w:color="auto"/>' \
+                   '<w:insideH w:val="single" w:sz="4" w:color="auto"/>' \
+                   '<w:insideV w:val="single" w:sz="4" w:color="auto"/>' \
+                   '</w:tblBorders>'
+
+    def build_table_wordml(field)
+      sub_fields = field.fetch('sub_fields', [])
+      return Sablon.content(:word_ml, TABLE_BLANK_WORDML) if sub_fields.empty?
+
+      width = (9000.0 / sub_fields.length).round
+      font_size = sub_fields.length > 6 ? 16 : 20
+      grid = sub_fields.map { %(<w:gridCol w:w="#{width}"/>) }.join
+      header = build_table_header_row(sub_fields, width, font_size)
+      rows = build_table_body_rows(field.fetch('sub_values', []), sub_fields, width, font_size)
+      tbl = '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/>' \
+            "#{TABLE_BORDER}</w:tblPr><w:tblGrid>#{grid}</w:tblGrid>" \
+            "#{header}#{rows}</w:tbl>"
+      Sablon.content(:word_ml, tbl)
+    rescue StandardError => e
+      Labimotion.log_exception(e)
+      Sablon.content(:word_ml, TABLE_BLANK_WORDML)
+    end
+
+    DATETIME_RANGE_HEADERS = ['Start', 'Stop', 'Duration (calc)', 'Duration'].freeze
+    DATETIME_RANGE_PRECISE_LABELS = %w[year month day hour minute second].freeze
+    DURATION_UNIT_LABELS = {
+      'd' => 'day',
+      'h' => 'hour',
+      'min' => 'minute',
+      's' => 'second'
+    }.freeze
+
+    def build_datetime_range_wordml(field)
+      sub_fields = field.fetch('sub_fields', []) || []
+      by_col = sub_fields.each_with_object({}) { |sf, h| h[sf['col_name']] = sf if sf.is_a?(Hash) }
+      values = datetime_range_values(by_col)
+      datetime_range_wordml_table(values)
+    rescue StandardError => e
+      Labimotion.log_exception(e)
+      Sablon.content(:word_ml, TABLE_BLANK_WORDML)
+    end
+
+    def datetime_range_values(by_col)
+      time_start = by_col['timeStart']&.dig('value').to_s
+      time_stop = by_col['timeStop']&.dig('value').to_s
+      [
+        time_start,
+        time_stop,
+        format_duration_calc(by_col['durationCalc'], time_start, time_stop),
+        format_duration_value(by_col['duration'])
+      ]
+    end
+
+    def datetime_range_wordml_table(values)
+      width = (9000.0 / DATETIME_RANGE_HEADERS.length).round
+      font_size = 20
+      grid = DATETIME_RANGE_HEADERS.map { %(<w:gridCol w:w="#{width}"/>) }.join
+      header_cells = DATETIME_RANGE_HEADERS.map { |h| build_wordml_cell(h, width, font_size, true) }.join
+      body_cells = values.map { |v| build_wordml_cell(v, width, font_size, false) }.join
+      tbl = '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/>' \
+            "#{TABLE_BORDER}</w:tblPr><w:tblGrid>#{grid}</w:tblGrid>" \
+            "<w:tr>#{header_cells}</w:tr><w:tr>#{body_cells}</w:tr></w:tbl>"
+      Sablon.content(:word_ml, tbl)
+    end
+
+    def format_duration_value(duration_sf)
+      val = duration_sf&.dig('value')
+      return '' if val.nil? || val.to_s.empty?
+
+      "#{val} #{duration_unit_label(duration_sf['value_system'], val)}".strip
+    end
+
+    def duration_unit_label(value_system, value)
+      base = DURATION_UNIT_LABELS[value_system.to_s]
+      return value_system.to_s if base.nil?
+
+      pluralize_unit?(value) ? "#{base}s" : base
+    end
+
+    def pluralize_unit?(value)
+      numeric = Float(value.to_s)
+      (numeric - 1.0).abs > Float::EPSILON
+    rescue ArgumentError, TypeError
+      true
+    end
+
+    def format_duration_calc(_duration_calc_sf, time_start, time_stop)
+      compute_duration_calc(time_start, time_stop)
+    end
+
+    def compute_duration_calc(time_start, time_stop)
+      start_t = parse_datetime_range_value(time_start)
+      stop_t = parse_datetime_range_value(time_stop)
+      return '' unless start_t && stop_t && stop_t > start_t
+
+      precise_diff_humanize(start_t, stop_t)
+    end
+
+    def parse_datetime_range_value(str)
+      cleaned = str.to_s.strip
+      return nil if cleaned.empty?
+
+      parts = Date._parse(cleaned)
+      return nil unless datetime_range_parts_complete?(parts)
+
+      build_utc_from_parts(parts)
+    rescue ArgumentError
+      nil
+    end
+
+    def datetime_range_parts_complete?(parts)
+      %i[year mon mday].all? { |k| parts[k] }
+    end
+
+    def build_utc_from_parts(parts)
+      Time.utc(parts[:year], parts[:mon], parts[:mday],
+               parts[:hour] || 0, parts[:min] || 0, parts[:sec] || 0)
+    end
+
+    def precise_diff_humanize(start_t, stop_t)
+      components = precise_diff_components(start_t, stop_t)
+      parts = components.zip(DATETIME_RANGE_PRECISE_LABELS).reject { |n, _| n <= 0 }
+      return '0 seconds' if parts.empty?
+
+      parts.map { |n, label| format_precise_part(n, label) }.join(' ')
+    end
+
+    def format_precise_part(count, label)
+      suffix = count == 1 ? '' : 's'
+      "#{count} #{label}#{suffix}"
+    end
+
+    def precise_diff_components(start_t, stop_t)
+      y, m, d, h, mi, s = precise_diff_raw(start_t, stop_t)
+      mi, s = borrow_unit(mi, s, 60)
+      h, mi = borrow_unit(h, mi, 60)
+      d, h = borrow_unit(d, h, 24)
+      if d.negative?
+        m -= 1
+        d += (Date.new(stop_t.year, stop_t.month, 1) - 1).day
+      end
+      y, m = borrow_unit(y, m, 12)
+      [y, m, d, h, mi, s]
+    end
+
+    def borrow_unit(higher, lower, base)
+      return [higher, lower] unless lower.negative?
+
+      [higher - 1, lower + base]
+    end
+
+    def precise_diff_raw(start_t, stop_t)
+      [
+        stop_t.year - start_t.year,
+        stop_t.month - start_t.month,
+        stop_t.day - start_t.day,
+        stop_t.hour - start_t.hour,
+        stop_t.min - start_t.min,
+        stop_t.sec - start_t.sec
+      ]
+    end
+
+    def build_table_header_row(sub_fields, width, font_size)
+      cells = sub_fields.map { |sf| build_wordml_cell(sf['col_name'].to_s, width, font_size, true) }.join
+      "<w:tr>#{cells}</w:tr>"
+    end
+
+    def build_table_body_rows(sub_values, sub_fields, width, font_size)
+      sub_values.map do |sv|
+        cells = sub_fields.map { |sf| build_wordml_cell(table_cell_text(sv, sf), width, font_size, false) }.join
+        "<w:tr>#{cells}</w:tr>"
+      end.join
+    end
+
+    def build_wordml_cell(text, width, font_size, bold)
+      bold_xml = bold ? '<w:b/>' : ''
+      rpr = "<w:rPr>#{bold_xml}<w:sz w:val=\"#{font_size}\"/></w:rPr>"
+      lines = text.to_s.split(/\r?\n/)
+      lines = [''] if lines.empty?
+      paragraphs = lines.map do |line|
+        "<w:p><w:r>#{rpr}<w:t xml:space=\"preserve\">#{xml_escape(line)}</w:t></w:r></w:p>"
+      end.join
+      "<w:tc><w:tcPr><w:tcW w:w=\"#{width}\" w:type=\"dxa\"/></w:tcPr>#{paragraphs}</w:tc>"
+    end
+
+    def xml_escape(str)
+      str.to_s.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
+    end
+
+    TABLE_CELL_TEXT_RENDERERS = {
+      Labimotion::FieldType::DRAG_SAMPLE => ->(_sf, c, ctx) { ctx.table_cell_sample_text(c['value'] || {}) },
+      Labimotion::FieldType::DRAG_MOLECULE => ->(_sf, c, ctx) { ctx.table_cell_molecule_text(c['value'] || {}) },
+      Labimotion::FieldType::SELECT => ->(_sf, c, _ctx) { c['value'].to_s },
+      Labimotion::FieldType::SYSTEM_DEFINED => ->(sf, c, ctx) { ctx.table_cell_sysdef_text(sf, c) }
+    }.freeze
+
+    def table_cell_text(sub_val, sub_field)
+      return '' if sub_field.fetch('id', nil).nil? || sub_val[sub_field['id']].nil?
+
+      cell = sub_val[sub_field['id']]
+      renderer = TABLE_CELL_TEXT_RENDERERS[sub_field['type']]
+      return renderer.call(sub_field, cell, self) if renderer
+
+      raw = cell.is_a?(Hash) ? cell['value'] : cell
+      raw.to_s
+    end
+
+    def table_cell_sample_text(val)
+      parts = []
+      parts << "Short Label: [#{val['el_label']}]" if val['el_label'].present?
+      parts << "Name: [#{val['el_name']}]" if val['el_name'].present?
+      parts << "Ext. Label: [#{val['el_external_label']}]" if val['el_external_label'].present?
+      parts << "Mass: [#{val['el_molecular_weight']}]" if val['el_molecular_weight'].present?
+      parts << "#{sample_url}/#{val['el_id']}" if val['el_id'].present?
+      parts.join("\n")
+    end
+
+    def table_cell_molecule_text(val)
+      parts = []
+      parts << "SMILES: [#{val['el_smiles']}]" if val['el_smiles'].present?
+      parts << "InChiKey: [#{val['el_inchikey']}]" if val['el_inchikey'].present?
+      parts << "IUPAC: [#{val['el_iupac']}]" if val['el_iupac'].present?
+      parts << "MASS: [#{val['el_molecular_weight']}]" if val['el_molecular_weight'].present?
+      parts.join("\n")
+    end
+
+    def table_cell_sysdef_text(sub_field, cell)
+      fdef = Labimotion::Units::FIELDS.find { |o| o[:field] == sub_field['option_layers'] }
+      unit = fdef&.fetch(:units, [])&.find { |u| u[:key] == cell['value_system'] }&.fetch(:label, '')
+      "#{cell['value']} #{unit}".strip
     end
 
     def build_fields(layer)

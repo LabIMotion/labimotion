@@ -1,6 +1,7 @@
 module Labimotion
   ## Converter State
   class Prop
+    CONVERTER_FIELD_UINT_PREFIX = '___unit___'.freeze
     LAYERS = 'layers'.freeze
     FIELDS = 'fields'.freeze
     SUBFIELDS = 'sub_fields'.freeze

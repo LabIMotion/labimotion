@@ -9,7 +9,7 @@ module Labimotion
       "default": "",
       "position": 10,
       "placeholder": "acceleration",
-      "units": [{ "key": "mm_s2", "label": "mm/s<sup>2</sup>" }]
+      "units": [{ "key": "mm_s2", "label": "mm/s²" }]
     },
     {
       "type": "numeric",
@@ -53,6 +53,20 @@ module Labimotion
     },
     {
       "type": "numeric",
+      "field": "areal_density",
+      "label": "Areal density",
+      "default": "",
+      "position": 38,
+      "placeholder": "areal density",
+      "units": [
+        { "key": "kg_m2", "label": "kg m⁻²", "nm": 1 },
+        { "key": "t_m2", "label": "t m⁻²", "nm": 0.001 },
+        { "key": "kg_cm2", "label": "kg cm⁻²", "nm": 1e-4 },
+        { "key": "g_m2", "label": "g m⁻²", "nm": 1000 }
+      ]
+    },
+    {
+      "type": "numeric",
       "field": "molarity",
       "label": "Chem. concentration (Molarity)",
       "default": "",
@@ -83,7 +97,7 @@ module Labimotion
       "position": 60,
       "placeholder": "concentration",
       "units": [
-        { "key": "ng_l", "label": "ng/L", "nm": 1000000 },
+        { "key": "ng_l", "label": "ng/L", "nm": 1000000000 },
         { "key": "mg_l", "label": "mg/L", "nm": 1000 },
         { "key": "g_l", "label": "g/L", "nm": 1 }
       ]
@@ -93,16 +107,34 @@ module Labimotion
       "field": "conductivity",
       "label": "Conductivity",
       "default": "",
-      "position": 66,
+      "position": 62,
       "placeholder": "conductivity",
-      "units": [{ "key": "s_m", "label": "S/m", "nm": 1 }]
+      "units": [
+        { "key": "s_m", "label": "S/m", "nm": 1 },
+        { "key": "ms_cm", "label": "mS/cm", "nm": 10 }
+      ]
+    },
+    {
+      "type": "numeric",
+      "field": "currency",
+      "label": "Currency",
+      "default": "",
+      "position": 64,
+      "placeholder": "Currency",
+      "units": [
+        { "key": "eur", "label": "EUR", "nm": 1, "unit_type": "eur" },
+        { "key": "chf", "label": "CHF", "nm": 1, "unit_type": "chf" },
+        { "key": "gbp", "label": "GBP", "nm": 1, "unit_type": "gbp" },
+        { "key": "usd", "label": "USD", "nm": 1, "unit_type": "usd" },
+        { "key": "jpy", "label": "JPY", "nm": 1, "unit_type": "jpy" }
+      ]
     },
     {
       "type": "numeric",
       "field": "current",
       "label": "Current",
       "default": "",
-      "position": 60,
+      "position": 67,
       "placeholder": "Current",
       "units": [
         { "key": "A", "label": "A", "nm": 1 },
@@ -139,7 +171,7 @@ module Labimotion
       "position": 75,
       "placeholder": "density",
       "units": [
-        { "key": "g_cm3", "label": "g/cm<sup>3</sup>", "nm": 1 },
+        { "key": "g_cm3", "label": "g/cm³", "nm": 1 },
         { "key": "kg_l", "label": "kg/l", "nm": 1 }
       ]
     },
@@ -166,7 +198,8 @@ module Labimotion
         { "key": "d", "label": "d", "nm": 1 },
         { "key": "h", "label": "h", "nm": 24 },
         { "key": "min", "label": "m", "nm": 1440 },
-        { "key": "s", "label": "s", "nm": 86400 }
+        { "key": "s", "label": "s", "nm": 86400 },
+        { "key": "y", "label": "y", "nm": 0.0027378507871321013 }
       ]
     },
     {
@@ -248,7 +281,19 @@ module Labimotion
         { "key": "eV", "label": "eV", "nm": 6.241509e21 },
         { "key": "keV", "label": "keV", "nm": 6.241509e18 },
         { "key": "j", "label": "J", "nm": 1000 },
-        { "key": "k_j", "label": "kJ", "nm": 1 }
+        { "key": "k_j", "label": "kJ", "nm": 1 },
+        { "key": "kWh", "label": "kWh", "nm": 2.7777778e-4 }
+      ]
+    },
+    {
+      "type": "numeric",
+      "field": "free_energy",
+      "label": "Free Energy/enthalpy",
+      "default": "",
+      "position": 89,
+      "placeholder": "Free Energy/enthalpy",
+      "units": [
+        { "key": "kj_mol", "label": "kJ/mol", "nm": 1 }
       ]
     },
     {
@@ -260,9 +305,9 @@ module Labimotion
       "placeholder": "Enzyme activity",
       "units": [
         { "key": "u_l", "label": "U/L", "nm": 1 },
-        { "key": "u_ml", "label": "U/mL", "nm": 10e-3 },
-        { "key": "u_g", "label": "U/g", "nm": 10e-3 },
-        { "key": "u_mg", "label": "U/mg", "nm": 10e-6 }
+        { "key": "u_ml", "label": "U/mL", "nm": 1e-3 },
+        { "key": "u_g", "label": "U/g", "nm": 1e-3 },
+        { "key": "u_mg", "label": "U/mg", "nm": 1e-6 }
       ]
     },
     {
@@ -284,9 +329,10 @@ module Labimotion
       "position": 100,
       "placeholder": "Flow rate",
       "units": [
-        { "key": "ul_min", "label": "µl/min", "nm": 1000000 },
-        { "key": "ml_min", "label": "ml/min", "nm": 1000 },
-        { "key": "l_m", "label": "l/m", "nm": 1 }
+        { "key": "l_m", "label": "L/min", "nm": 1 },
+        { "key": "ml_min", "label": "mL/min", "nm": 1000 },
+        { "key": "ul_min", "label": "µL/min", "nm": 1000000 },
+        { "key": "ml_h", "label": "mL/h", "nm": 60000 }
       ]
     },
     {
@@ -297,19 +343,26 @@ module Labimotion
       "position": 103,
       "placeholder": "frequency",
       "units": [
-        { "key": "mhz", "label": "MHz", "nm": 1000000 },
-        { "key": "hz", "label": "Hz", "nm": 1000 },
-        { "key": "khz", "label": "kHz", "nm": 1 }
+        { "key": "hz", "label": "Hz", "nm": 1 },
+        { "key": "khz", "label": "kHz", "nm": 1e-3 },
+        { "key": "mhz", "label": "MHz", "nm": 1e-6 }
       ]
     },
     {
       "type": "numeric",
       "field": "heating_rate",
-      "label": "Heating rate",
+      "label": "Heating rate (Temperature ramp)",
       "default": "",
       "position": 106,
       "placeholder": "heating rate",
-      "units": [{ "key": "k_min", "label": "K/min", "nm": 1 }]
+      "units": [
+        { "key": "k_min", "label": "K/min", "nm": 1 },
+        { "key": "k_s", "label": "K/s", "nm": 0.016666666666667 },
+        { "key": "k_h", "label": "K/h", "nm": 60 },
+        { "key": "degc_min", "label": "°C min⁻¹", "nm": 1 },
+        { "key": "degc_s", "label": "°C s⁻¹", "nm": 0.016666666666667 },
+        { "key": "degc_h", "label": "°C h⁻¹", "nm": 60 }
+      ]
     },
     {
       "type": "numeric",
@@ -343,7 +396,46 @@ module Labimotion
       "units": [
         { "key": "g", "label": "g", "nm": 1 },
         { "key": "mg", "label": "mg", "nm": 1000 },
-        { "key": "ug", "label": "µg", "nm": 1000000 }
+        { "key": "ug", "label": "µg", "nm": 1000000 },
+        { "key": "kg", "label": "kg", "nm": 0.001 }
+      ]
+    },
+    {
+      "type": "numeric",
+      "field": "mass_flow",
+      "label": "Mass flow",
+      "default": "",
+      "position": 121,
+      "placeholder": "mass flow",
+      "units": [
+        { "key": "g_min", "label": "g/min", "nm": 1 },
+        { "key": "kg_h", "label": "kg/h", "nm": 0.06 },
+        { "key": "kg_s", "label": "kg/s", "nm": 0.000016666666666667 },
+        { "key": "g_s", "label": "g/s", "nm": 0.016666666666667 },
+        { "key": "mg_s", "label": "mg/s", "nm": 16.666666666667 }
+      ]
+    },
+    {
+      "type": "numeric",
+      "field": "mass_fraction",
+      "label": "Mass fraction",
+      "default": "",
+      "position": 123,
+      "placeholder": "mass fraction",
+      "units": [
+        { "key": "wt_p", "label": "wt.%", "nm": 1 }
+      ]
+    },
+    {
+      "type": "numeric",
+      "field": "mass_loading",
+      "label": "Mass loading",
+      "default": "",
+      "position": 125,
+      "placeholder": "mass loading",
+      "units": [
+        { "key": "g_cm2", "label": "g cm⁻²", "nm": 1 },
+        { "key": "mg_cm2", "label": "mg cm⁻²", "nm": 1000 }
       ]
     },
     {
@@ -356,6 +448,28 @@ module Labimotion
       "units": [
         { "key": "dalton", "label": "D", "nm": 1000 },
         { "key": "kilo_dalton", "label": "kD", "nm": 1 }
+      ]
+    },
+    {
+      "type": "numeric",
+      "field": "molar_conductivity",
+      "label": "Molar conductivity",
+      "default": "",
+      "position": 127,
+      "placeholder": "molar conductivity",
+      "units": [
+        { "key": "s_cm2_mol", "label": "S cm² mol⁻¹", "nm": 1 }
+      ]
+    },
+    {
+      "type": "numeric",
+      "field": "molar_entropy",
+      "label": "Molar Entropy",
+      "default": "",
+      "position": 128,
+      "placeholder": "Molar Entropy",
+      "units": [
+        { "key": "j_mol_k", "label": "J/(mol*K)", "nm": 1 }
       ]
     },
     {
@@ -396,10 +510,35 @@ module Labimotion
         { "key": "atm", "label": "atm", "nm": 1 },
         { "key": "pa", "label": "Pa", "nm": 101325 },
         { "key": "kpa", "label": "kPa", "nm": 101.325 },
+        { "key": "mpa", "label": "MPa", "nm": 0.101325 },
         { "key": "hpa", "label": "hPa", "nm": 1013.25 },
         { "key": "torr", "label": "Torr", "nm": 760 },
         { "key": "bar", "label": "bar", "nm": 1.01325 },
         { "key": "mbar", "label": "mbar", "nm": 1013.25 }
+      ]
+    },
+    {
+      "type": "numeric",
+      "field": "process_rate",
+      "label": "Process rate",
+      "default": "",
+      "position": 143,
+      "placeholder": "Process rate",
+      "units": [
+        { "key": "1_s", "label": "1/s", "nm": 1 },
+        { "key": "1_min", "label": "1/min", "nm": 60 },
+        { "key": "1_h", "label": "1/h", "nm": 3600 }
+      ]
+    },
+    {
+      "type": "numeric",
+      "field": "rate_constant",
+      "label": "Rate constant",
+      "default": "",
+      "position": 146,
+      "placeholder": "Rate constant",
+      "units": [
+        { "key": "1_m_s", "label": "1/(M*s)", "nm": 1 }
       ]
     },
     {
@@ -410,8 +549,8 @@ module Labimotion
       "position": 150,
       "placeholder": "Reaction rate",
       "units": [
-        { "key": "mol_lmin", "label": "mol/Lmin", "nm": 1 },
-        { "key": "mol_lsec", "label": "mol/Ls", "nm": 60 }
+        { "key": "mol_lmin", "label": "mol L⁻¹ min⁻¹", "nm": 1 },
+        { "key": "mol_lsec", "label": "mol L⁻¹ s⁻¹", "nm": 0.016666666666667 }
       ]
     },
     {
@@ -440,6 +579,22 @@ module Labimotion
     },
     {
       "type": "numeric",
+      "field": "space_time_yield",
+      "label": "Space-time yield",
+      "default": "",
+      "position": 156,
+      "placeholder": "space-time yield",
+      "units": [
+        { "key": "kg_m3_d", "label": "kg/(m³*d)", "nm": 1 },
+        { "key": "kg_m3_h", "label": "kg/(m³*h)", "nm": 0.041666666666667 },
+        { "key": "g_l_h", "label": "g/(L*h)", "nm": 0.041666666666667 },
+        { "key": "mg_ml_h", "label": "mg/(mL*h)", "nm": 0.041666666666667 },
+        { "key": "g_l_min", "label": "g/(L*min)", "nm": 0.00069444444444444 },
+        { "key": "g_m3_s", "label": "g/(m³*s)", "nm": 0.011574074074074 }
+      ]
+    },
+    {
+      "type": "numeric",
       "field": "specific_current",
       "label": "Specific current",
       "default": "",
@@ -448,8 +603,9 @@ module Labimotion
       "units": [
         { "key": "ma_g", "label": "mA/g", "nm": 1000, "unit_type": "mass" },
         { "key": "a_g", "label": "A/g", "nm": 1, "unit_type": "mass" },
-        { "key": "a_cm2", "label": "A/cm<sup>2</sup>", "nm": 1, "unit_type": "area" },
-        { "key": "ma_cm2", "label": "mA/cm<sup>2</sup>", "nm": 1000, "unit_type": "area" }
+        { "key": "ma_cm2", "label": "mA/cm²", "nm": 1000, "unit_type": "area" },
+        { "key": "a_cm2", "label": "A/cm²", "nm": 1, "unit_type": "area" },
+        { "key": "a_mm2", "label": "A/mm²", "nm": 0.01, "unit_type": "area" }
       ]
     },
     {
@@ -472,7 +628,7 @@ module Labimotion
       "position": 158,
       "placeholder": "Specific surface area",
       "units": [
-        { "key": "m2_g", "label": "m<sup>2</sup>/g", "nm": 1 }
+        { "key": "m2_g", "label": "m²/g", "nm": 1 }
       ]
     },
     {
@@ -482,7 +638,7 @@ module Labimotion
       "default": "",
       "position": 160,
       "placeholder": "Specific Volume",
-      "units": [{ "key": "cm3_g", "label": "cm<sup>3</sup>/g", "nm": 1 }]
+      "units": [{ "key": "cm3_g", "label": "cm³/g", "nm": 1 }]
     },
     {
       "type": "numeric",
@@ -495,7 +651,7 @@ module Labimotion
         { "key": "cm_s", "label": "cm/s", "nm": 1 },
         { "key": "mm_s", "label": "mm/s", "nm": 10 },
         { "key": "um_m", "label": "µm/min", "nm": 600000 },
-        { "key": "nm_m", "label": "nm/min", "nm": 60000000 },
+        { "key": "nm_m", "label": "nm/min", "nm": 600000000 },
         { "key": "cm_h", "label": "cm/h", "nm": 3600 },
         { "key": "mm_h", "label": "mm/h", "nm": 36000 }
       ]
@@ -521,10 +677,10 @@ module Labimotion
       "position": 170,
       "placeholder": "surface",
       "units": [
-        { "key": "a_2", "label": "A<sup>2</sup>", "nm": 1.0e16 },
-        { "key": "um_2", "label": "µm<sup>2</sup>", "nm": 1.0e8 },
-        { "key": "mm_2", "label": "mm<sup>2</sup>", "nm": 100 },
-        { "key": "cm_2", "label": "cm<sup>2</sup>", "nm": 1 }
+        { "key": "a_2", "label": "A²", "nm": 1.0e16 },
+        { "key": "um_2", "label": "µm²", "nm": 1.0e8 },
+        { "key": "mm_2", "label": "mm²", "nm": 100 },
+        { "key": "cm_2", "label": "cm²", "nm": 1 }
       ]
     },
     {
@@ -542,12 +698,37 @@ module Labimotion
     },
     {
       "type": "numeric",
+      "field": "tensile_force",
+      "label": "Tensile force",
+      "default": "",
+      "position": 185,
+      "placeholder": "tensile force",
+      "units": [
+        { "key": "n", "label": "N", "nm": 1 },
+        { "key": "kn", "label": "kN", "nm": 0.001 },
+        { "key": "mn", "label": "mN", "nm": 1000 }
+      ]
+    },
+    {
+      "type": "numeric",
+      "field": "tensile_stress",
+      "label": "Tensile stress",
+      "default": "",
+      "position": 186,
+      "placeholder": "tensile stress",
+      "units": [
+        { "key": "n_cm2", "label": "N cm⁻²", "nm": 1 },
+        { "key": "n_mm2", "label": "N mm⁻²", "nm": 0.01 }
+      ]
+    },
+    {
+      "type": "numeric",
       "field": "turnover_number",
       "label": "Turnover number",
       "default": "",
       "position": 190,
       "placeholder": "Turnover number",
-      "units": [{ "key": "1_s", "label": "1/s", "nm": 1 }, { "key": "1_m", "label": "1/m", "nm": 60 }]
+      "units": [{ "key": "1_s", "label": "1/s", "nm": 1 }, { "key": "1_m", "label": "1/min", "nm": 60 }]
     },
     {
       "type": "numeric",
@@ -568,14 +749,14 @@ module Labimotion
       "default": "",
       "position": 205,
       "placeholder": "Kinematic Viscosity",
-      "units": [{ "key": "m2_s", "label": "m<sup>2</sup>/s", "nm": 1 }]
+      "units": [{ "key": "m2_s", "label": "m²/s", "nm": 1 }]
     },
     {
       "type": "numeric",
       "field": "voltage",
       "label": "Voltage",
       "default": "",
-      "position": 200,
+      "position": 206,
       "placeholder": "voltage",
       "units": [
         { "key": "mv", "label": "mV", "nm": 1000 },
@@ -595,6 +776,17 @@ module Labimotion
         { "key": "ml", "label": "ml", "nm": 1000 },
         { "key": "ul", "label": "µl", "nm": 1000000 },
         { "key": "nl", "label": "nl", "nm": 1000000000 }
+      ]
+    },
+    {
+      "type": "numeric",
+      "field": "volume_fraction",
+      "label": "Volume fraction",
+      "default": "",
+      "position": 218,
+      "placeholder": "volume fraction",
+      "units": [
+        { "key": "vol_p", "label": "vol.%", "nm": 1 }
       ]
     },
     {

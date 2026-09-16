@@ -41,6 +41,12 @@ module Labimotion
     has_many :samples, through: :elements_samples, source: :sample
     has_one :container, :as => :containable
     has_many :elements_revisions, dependent: :destroy, class_name: 'Labimotion::ElementsRevision'
+    has_one :element_variation, dependent: :destroy, class_name: 'Labimotion::ElementVariation', foreign_key: :element_id
+
+    def variations_count
+      rows = element_variation&.variations
+      rows.is_a?(Hash) ? rows.size : 0
+    end
 
     accepts_nested_attributes_for :collections_elements
 
@@ -135,9 +141,10 @@ module Labimotion
         joins(collections: :user).where(collections: { user_id: user_id })
       )
 
-      # Shared (synced) elements
+      # Shared elements — collection_shares hangs off Collection, not off
+      # Element itself, so join through the collections association.
       shared = apply_filters.call(
-        joins(collections: :sync_collections_users).where(sync_collections_users: { user_id: user_id })
+        left_joins(collections: :collection_shares).where(collection_shares: { shared_with_id: user_id })
       )
 
       # Combine (remove duplicates), order, and limit

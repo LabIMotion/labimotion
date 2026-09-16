@@ -146,5 +146,11 @@ module Labimotion
       requires :layer_id, type: String, desc: 'layer identifier'
       requires :field_id, type: String, desc: 'field identifier'
     end
+
+
+    params :create_mtt_request_params do
+      requires :id, type: Integer, desc: 'Element ID'
+      requires :wellplate_ids, type: Array, desc: 'Selected Wellplates'
+    end
   end
 end

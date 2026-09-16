@@ -87,12 +87,13 @@ module Labimotion
       }
       element = Labimotion::Element.new(attributes)
 
-      if params[:collection_id]
+      all_coll = Collection.get_all_collection_for_user(current_user.id)
+      element.collections << all_coll
+
+      if params[:collection_id] && params[:collection_id] != all_coll.id
         collection = current_user.collections.find(params[:collection_id])
         element.collections << collection
       end
-      all_coll = Collection.get_all_collection_for_user(current_user.id)
-      element.collections << all_coll
       element.save!
       element.properties = update_sample_association(params[:properties], current_user, element)
       # element.properties = update_vocabularies(_properties, current_user, element)
@@ -199,7 +200,7 @@ module Labimotion
     def element_revisions(params)
       klass = Labimotion::Element.find(params[:id])
       list = klass.elements_revisions unless klass.nil?
-      list&.order(created_at: :desc)&.limit(10)
+      list&.order(created_at: :desc)&.limit(params[:limit])
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
       raise e
@@ -214,7 +215,7 @@ module Labimotion
         layer, field = params[:sort_column].split('.')
 
         element_klass = Labimotion::ElementKlass.find_by(name: params[:el_type])
-        allowed_fields = element_klass.properties_release.dig(Labimotion::Prop::LAYERS, layer, Labimotion::Prop::FIELDS)&.pluck('field') || []
+        allowed_fields = element_klass&.properties_release&.dig(Labimotion::Prop::LAYERS, layer, Labimotion::Prop::FIELDS)&.pluck('field') || []
 
         if field.in?(allowed_fields)
           query = ActiveRecord::Base.sanitize_sql(
@@ -246,27 +247,21 @@ module Labimotion
     end
 
     def list_serialized_elements(params, current_user)
-      collection_id =
-      if params[:collection_id]
-        Collection
-          .belongs_to_or_shared_by(current_user.id, current_user.group_ids)
-          .find_by(id: params[:collection_id])&.id
-      elsif params[:sync_collection_id]
-        current_user
-          .all_sync_in_collections_users
-          .find_by(id: params[:sync_collection_id])&.collection&.id
-      end
+      scope = Labimotion::Element.none
 
-      scope =
-      if collection_id
-        Labimotion::Element
-          .joins(:element_klass, :collections_elements)
-          .where(
-            element_klasses: { name: params[:el_type] },
-            collections_elements: { collection_id: collection_id },
-          ).includes(:tag, collections: :sync_collections_users)
+      if params[:collection_id]
+        begin
+          collection = Collection.accessible_for(current_user).find(params[:collection_id])
+          scope = collection.elements
+                            .joins(:element_klass)
+                            .where(element_klasses: { name: params[:el_type] })
+                            .includes(:tag)
+        rescue ActiveRecord::RecordNotFound
+          Labimotion::Element.none
+        end
       else
-        Labimotion::Element.none
+        # All collection of current_user
+        scope = Labimotion::Element.for_user(current_user.id)
       end
 
       ## TO DO: refactor labimotion
@@ -277,7 +272,7 @@ module Labimotion
         layer, field = params[:sort_column].split('.')
 
         element_klass = Labimotion::ElementKlass.find_by(name: params[:el_type])
-        allowed_fields = element_klass.properties_release.dig(Labimotion::Prop::LAYERS, layer, Labimotion::Prop::FIELDS)&.pluck('field') || []
+        allowed_fields = element_klass&.properties_release&.dig(Labimotion::Prop::LAYERS, layer, Labimotion::Prop::FIELDS)&.pluck('field') || []
 
         if field.in?(allowed_fields)
           query = ActiveRecord::Base.sanitize_sql(

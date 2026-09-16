@@ -11,7 +11,7 @@ EntityMocks.load_entities!
 RSpec.describe Labimotion::GenericKlassEntity do
   # Helper method to format timestamps consistently
   def format_timestamp(datetime_string)
-    DateTime.parse(datetime_string).strftime('%Y-%m-%d %H:%M:%S %Z')
+    DateTime.parse(datetime_string).strftime('%Y-%m-%dT%H:%M:%S%z')
   end
 
   let(:basic_properties) do
@@ -135,47 +135,43 @@ RSpec.describe Labimotion::GenericKlassEntity do
       entity_data_utc = SpecEntities::GenericKlass.new(basic_properties.merge(released_at: utc_time))
       entity = described_class.new(entity_data_utc)
 
-      expect(entity.released_at).to eq(utc_time.strftime('%Y-%m-%d %H:%M:%S %Z'))
+      expect(entity.released_at).to eq(utc_time.strftime('%Y-%m-%dT%H:%M:%S%z'))
     end
   end
 
   describe 'ApplicationEntity eln_timestamp formatter' do
-    it 'tests the formatter logic directly with offset timezone' do
-      test_datetime = DateTime.parse('2023-09-07 11:36:08.831')
-      expected_format = test_datetime.strftime('%Y-%m-%d %H:%M:%S %Z')
-      expect(expected_format).to eq(format_timestamp('2023-09-07 11:36:08.831'))
+    let(:entity_data) { SpecEntities::GenericKlass.new(basic_properties) }
+    let(:utc_time) { DateTime.parse('2023-09-07 11:36:08 UTC') }
+    let(:utc_entity) do
+      described_class.new(SpecEntities::GenericKlass.new(basic_properties.merge(released_at: utc_time)))
     end
 
-    it 'tests formatter with explicit UTC' do
-      test_datetime = DateTime.parse('2023-09-07 11:36:08 UTC')
-      expected_format = test_datetime.strftime('%Y-%m-%d %H:%M:%S %Z')
-      expect(expected_format).to eq(test_datetime.strftime('%Y-%m-%d %H:%M:%S %Z'))
+    # ISO 8601 joins date and time with "T" and designates the zone as Z or ±hh[:]mm.
+    # A zone *name* ("UTC", strftime '%Z') is not valid ISO and makes moment.js fall back to
+    # `new Date()`, which is engine-specific.
+    let(:iso8601) { /\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:?\d{2})\z/ }
+
+    it 'serializes every timestamp field as ISO 8601' do
+      entity = described_class.new(entity_data)
+
+      expect(entity.released_at).to match(iso8601)
+      expect(entity.sync_time).to match(iso8601)
+      expect(entity.created_at).to match(iso8601)
+      expect(entity.updated_at).to match(iso8601)
     end
 
-    it 'tests the actual formatter behavior' do
-      formatter_block = proc do |datetime|
-        datetime.present? ? datetime.strftime('%Y-%m-%d %H:%M:%S %Z') : nil
-      end
-
-      test_datetime = DateTime.parse('2023-09-07 11:36:08.831')
-      result = formatter_block.call(test_datetime)
-      expect(result).to eq(format_timestamp('2023-09-07 11:36:08.831'))
-
-      test_datetime_utc = DateTime.parse('2023-09-07 11:36:08 UTC')
-      result_utc = formatter_block.call(test_datetime_utc)
-      expect(result_utc).to eq(test_datetime_utc.strftime('%Y-%m-%d %H:%M:%S %Z'))
-
-      result_nil = formatter_block.call(nil)
-      expect(result_nil).to be_nil
+    it 'designates the zone as an offset rather than a name' do
+      expect(utc_entity.released_at).to eq('2023-09-07T11:36:08+0000')
     end
 
-    it 'handles present? check in formatter' do
-      test_datetime = DateTime.parse('2023-09-07 11:36:08')
-      expect(test_datetime.respond_to?(:present?)).to be true
-      expect(test_datetime.present?).to be true
+    it 'preserves the instant when the serialized value is reparsed' do
+      expect(DateTime.parse(utc_entity.released_at)).to eq(utc_time)
+    end
 
-      # Test the actual behavior that matters for the formatter
-      expect(nil.present?).to be false if nil.respond_to?(:present?)
+    it 'returns nil for blank timestamps' do
+      entity = described_class.new(SpecEntities::GenericKlass.new(basic_properties.merge(released_at: nil)))
+
+      expect(entity.released_at).to be_nil
     end
   end
 

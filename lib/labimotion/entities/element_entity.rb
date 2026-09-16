@@ -23,6 +23,7 @@ module Labimotion
       expose! :uuid
       expose! :user_labels
       expose! :preview_attachment # align with eln change
+      expose! :variations_count
     end
 
     with_options(anonymize_below: 10) do

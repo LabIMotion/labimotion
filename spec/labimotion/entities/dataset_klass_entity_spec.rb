@@ -11,7 +11,7 @@ EntityMocks.load_entities!
 RSpec.describe Labimotion::DatasetKlassEntity do
   # Helper method to format timestamps consistently
   def format_timestamp(datetime_string)
-    DateTime.parse(datetime_string).strftime('%Y-%m-%d %H:%M:%S %Z')
+    DateTime.parse(datetime_string).strftime('%Y-%m-%dT%H:%M:%S%z')
   end
 
   # Create a DatasetKlass test entity that extends GenericKlass with ols_term_id

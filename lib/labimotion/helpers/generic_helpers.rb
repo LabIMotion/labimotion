@@ -95,7 +95,7 @@ module Labimotion
     def list_klass_revisions(params)
       klass = "Labimotion::#{params[:klass]}".constantize.find_by(id: params[:id])
       list = klass.send("#{params[:klass].underscore}es_revisions") unless klass.nil?
-      list&.order(released_at: :desc)&.limit(10)
+      list&.order(released_at: :desc)&.limit(params[:limit])
     rescue StandardError => e
       Labimotion.log_exception(e, current_user)
       raise e

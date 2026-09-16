@@ -113,8 +113,9 @@ module EntityMocks
     unless defined?(Labimotion::ApplicationEntity)
       labimotion_application_entity = Class.new(Entities::ApplicationEntity)
 
+      # Keep in sync with Labimotion::ApplicationEntity::ELN_TIMESTAMP_FORMAT
       labimotion_application_entity.format_with(:eln_timestamp) do |datetime|
-        datetime.present? ? datetime.strftime('%Y-%m-%d %H:%M:%S %Z') : nil
+        datetime.present? ? datetime.strftime('%Y-%m-%dT%H:%M:%S%z') : nil
       end
 
       Labimotion.const_set('ApplicationEntity', labimotion_application_entity)
